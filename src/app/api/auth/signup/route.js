@@ -1,4 +1,4 @@
-import { userSchema } from "@/lib/validations/user";
+import { SignupSchema } from "@/lib/validations/user";
 import connectToDatabase from "@/lib/db/mongodb";
 import User from "@/models/User";
 import { NextResponse } from "next/server";
@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 export async function POST(req) {
     try {
         const userData = await req.json();
-        const parsedData = userSchema.safeParse(userData);
+        const parsedData = SignupSchema.safeParse(userData);
         if (!parsedData.success) {
             return NextResponse.json(
                 { error: true, message: parsedData.error.flatten().fieldErrors },
