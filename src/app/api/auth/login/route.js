@@ -18,20 +18,19 @@ export async function POST(req) {
         }
         const { email, password } = parsedData.data;
         await connectToDatabase();
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).select("+password");
         if (!user) {
             return NextResponse.json(
-                { error: true, message: "Register first" },
-                { status: 404 }
+                { error: true, message: "Invalid credentials" },
+                { status: 401 }
             );
         }
 
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            console.log(isPasswordValid)
             return NextResponse.json(
-                { error: true, message: "Invalid password" },
+                { error: true, message: "Invalid credentials" },
                 { status: 401 }
             );
 
@@ -67,3 +66,4 @@ export async function POST(req) {
 
 
 }
+
