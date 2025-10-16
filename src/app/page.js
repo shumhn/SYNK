@@ -2,37 +2,37 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-neutral-50 to-white text-neutral-900">
+    <div className="min-h-screen bg-[#FDFDFC] text-[#151515]">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-neutral-200">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#FDFDFC]/90 backdrop-blur-xl border-b border-[#E8E2D7]">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center font-semibold">
+            <div className="w-10 h-10 rounded-xl bg-[#151515] text-white flex items-center justify-center font-semibold shadow-[0_10px_30px_rgba(21,21,21,0.12)]">
               Z
             </div>
             <div>
-              <p className="text-lg font-semibold tracking-tight">Zalient Productivity</p>
+              <p className="text-lg font-semibold tracking-tight font-heading">Zalient Productivity</p>
               <p className="text-xs text-neutral-500 uppercase tracking-[0.2em]">Premium Suite</p>
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-600">
-            <a href="#features" className="hover:text-neutral-900 transition-colors">Features</a>
-            <a href="#confidence" className="hover:text-neutral-900 transition-colors">Confidence</a>
-            <a href="#stories" className="hover:text-neutral-900 transition-colors">Stories</a>
-            <a href="#pricing" className="hover:text-neutral-900 transition-colors">Pricing</a>
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-500">
+            <a href="#features" className="hover:text-[#151515] transition-colors">Features</a>
+            <a href="#confidence" className="hover:text-[#151515] transition-colors">Confidence</a>
+            <a href="#stories" className="hover:text-[#151515] transition-colors">Stories</a>
+            <a href="#pricing" className="hover:text-[#151515] transition-colors">Pricing</a>
           </div>
 
           <div className="flex items-center gap-3">
             <Link
               href="/auth/login"
-              className="hidden sm:inline-flex px-5 py-2 rounded-full border border-neutral-200 text-neutral-700 hover:bg-neutral-100 transition"
+              className="hidden sm:inline-flex px-5 py-2 rounded-full border border-[#E8E2D7] text-neutral-600 hover:bg-[#F7F5F0] transition"
             >
               Login
             </Link>
             <Link
               href="/auth/signup"
-              className="inline-flex px-6 py-2.5 rounded-full bg-neutral-900 text-white font-medium shadow-lg shadow-neutral-900/20 hover:shadow-neutral-900/30 transition"
+              className="inline-flex px-6 py-2.5 rounded-full bg-[#151515] text-white font-medium shadow-lg shadow-[rgba(21,21,21,0.18)] hover:shadow-[rgba(21,21,21,0.25)] transition"
             >
               Get Started
             </Link>
@@ -41,30 +41,30 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <header className="pt-32 pb-24 px-6">
+      <header className="pt-32 pb-24 px-6 bg-[#FDFDFC]">
         <div className="max-w-6xl mx-auto grid lg:grid-cols-2 items-center gap-16">
           <div className="space-y-8">
-            <p className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-900 text-white text-xs font-semibold uppercase tracking-[0.3em]">
+            <p className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#F7F5F0] text-[#151515] text-xs font-semibold uppercase tracking-[0.3em] border border-[#E8E2D7] shadow-[0_6px_18px_rgba(21,21,21,0.05)]">
               Premium
-              <span className="w-1.5 h-1.5 bg-white rounded-full" />
+              <span className="w-1.5 h-1.5 bg-[#151515] rounded-full" />
               Productivity
             </p>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold leading-tight tracking-tight">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold leading-tight tracking-tight font-heading text-[#151515]">
               Elevate your workflow with a productivity suite designed for discerning teams.
             </h1>
-            <p className="text-lg text-neutral-600 leading-relaxed">
+            <p className="text-lg text-neutral-600 leading-relaxed font-body">
               Zalient Productivity blends minimalist design with powerful automation. Craft workflows, orchestrate knowledge, and synchronize progress across your organization with effortless precision.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Link
                 href="/auth/signup"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-neutral-900 text-white font-semibold shadow-md shadow-neutral-900/20 hover:shadow-lg hover:shadow-neutral-900/25 transition"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-[#151515] text-white font-semibold shadow-md shadow-[rgba(21,21,21,0.14)] hover:shadow-[rgba(21,21,21,0.2)] transition"
               >
                 Start your premium trial
               </Link>
               <Link
                 href="/auth/login"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-full border border-neutral-200 text-neutral-800 font-semibold hover:bg-neutral-100 transition"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full border border-[#E8E2D7] text-neutral-700 font-semibold hover:bg-[#F7F5F0] transition"
               >
                 Explore dashboard
               </Link>
@@ -86,12 +86,12 @@ export default function Home() {
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-6 bg-neutral-200 blur-3xl opacity-60" aria-hidden />
-            <div className="relative rounded-3xl border border-neutral-200 bg-white p-8 shadow-2xl shadow-neutral-900/10">
+            <div className="absolute -inset-6 bg-[#F7F5F0] blur-3xl opacity-80" aria-hidden />
+            <div className="relative rounded-3xl border border-[#E8E2D7] bg-white p-8 shadow-[0_45px_80px_rgba(26,26,26,0.08)]">
               <div className="flex items-center justify-between pb-6 border-b border-neutral-100">
                 <div className="space-y-1">
                   <p className="text-sm text-neutral-500">Intelligence Dashboard</p>
-                  <p className="text-lg font-semibold">Zalient Command Center</p>
+                  <p className="text-lg font-semibold font-heading text-[#151515]">Zalient Command Center</p>
                 </div>
                 <div className="flex -space-x-3">
                   <span className="w-10 h-10 rounded-full bg-neutral-900 text-white flex items-center justify-center text-sm font-medium border-4 border-white">
@@ -103,7 +103,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="grid gap-6 pt-6">
-                <div className="rounded-2xl bg-neutral-900 text-white p-6">
+                <div className="rounded-2xl bg-[#151515] text-white p-6 shadow-[0_25px_40px_rgba(21,21,21,0.22)]">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-neutral-300">Focus Mode</p>
@@ -171,11 +171,11 @@ export default function Home() {
       </header>
 
       {/* Features */}
-      <section id="features" className="py-24 px-6">
+      <section id="features" className="py-24 px-6 bg-[#F7F5F0]">
         <div className="max-w-6xl mx-auto space-y-16">
           <div className="text-center max-w-3xl mx-auto space-y-4">
             <p className="text-sm font-semibold text-neutral-500 uppercase tracking-[0.4em]">Crafted for precision</p>
-            <h2 className="text-4xl font-semibold tracking-tight">
+            <h2 className="text-4xl font-semibold tracking-tight font-heading text-[#151515]">
               Enterprise-grade control, delivered with boutique simplicity.
             </h2>
             <p className="text-neutral-600 text-lg leading-relaxed">
@@ -218,14 +218,14 @@ export default function Home() {
             ].map((feature) => (
               <div
                 key={feature.title}
-                className="rounded-3xl border border-neutral-200 bg-white p-10 shadow-lg shadow-neutral-900/5"
+                className="rounded-3xl border border-[#E8E2D7] bg-white p-10 shadow-[0_30px_60px_rgba(21,21,21,0.07)]"
               >
-                <h3 className="text-2xl font-semibold mb-4">{feature.title}</h3>
+                <h3 className="text-2xl font-semibold mb-4 font-heading text-[#151515]">{feature.title}</h3>
                 <p className="text-neutral-600 leading-relaxed mb-6">{feature.description}</p>
                 <ul className="space-y-3 text-sm text-neutral-500">
                   {feature.points.map((point) => (
                     <li key={point} className="flex items-center gap-2">
-                      <span className="inline-flex w-6 h-6 items-center justify-center rounded-full bg-neutral-900 text-white text-xs">
+                      <span className="inline-flex w-6 h-6 items-center justify-center rounded-full bg-[#151515] text-white text-xs">
                         ●
                       </span>
                       <span>{point}</span>
@@ -239,11 +239,11 @@ export default function Home() {
       </section>
 
       {/* Confidence */}
-      <section id="confidence" className="py-24 px-6 bg-neutral-900 text-white">
+      <section id="confidence" className="py-24 px-6 bg-[#151515] text-white">
         <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <div className="space-y-6">
             <p className="text-sm font-semibold uppercase tracking-[0.4em] text-white/60">Confidence layer</p>
-            <h2 className="text-4xl font-semibold leading-tight tracking-tight">
+            <h2 className="text-4xl font-semibold leading-tight tracking-tight font-heading">
               See every signal that matters. React before competitors even notice.
             </h2>
             <p className="text-white/70 leading-relaxed">
@@ -302,12 +302,12 @@ export default function Home() {
       </section>
 
       {/* Stories */}
-      <section id="stories" className="py-24 px-6">
+      <section id="stories" className="py-24 px-6 bg-[#FDFDFC]">
         <div className="max-w-6xl mx-auto space-y-12">
           <div className="flex flex-col lg:flex-row justify-between gap-8">
             <div className="max-w-2xl space-y-4">
               <p className="text-sm font-semibold text-neutral-500 uppercase tracking-[0.4em]">Client narratives</p>
-              <h2 className="text-4xl font-semibold tracking-tight">
+              <h2 className="text-4xl font-semibold tracking-tight font-heading text-[#151515]">
                 Forward-thinking teams craft their next chapter with Zalient.
               </h2>
             </div>
@@ -341,10 +341,10 @@ export default function Home() {
                 role: "Director of Strategy, Northbridge",
               },
             ].map((story) => (
-              <div key={story.name} className="rounded-3xl border border-neutral-200 bg-white p-8 shadow-md shadow-neutral-900/5">
-                <p className="text-neutral-600 leading-relaxed mb-6">“{story.quote}”</p>
-                <div className="pt-6 border-t border-neutral-100">
-                  <p className="font-semibold">{story.name}</p>
+              <div key={story.name} className="rounded-3xl border border-[#E8E2D7] bg-white p-8 shadow-[0_25px_50px_rgba(21,21,21,0.06)]">
+                <p className="text-neutral-600 leading-relaxed mb-6 font-body">“{story.quote}”</p>
+                <div className="pt-6 border-t border-[#F0EBE0]">
+                  <p className="font-semibold text-[#151515] font-heading">{story.name}</p>
                   <p className="text-sm text-neutral-500">{story.role}</p>
                 </div>
               </div>
@@ -354,11 +354,11 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-24 px-6">
+      <section id="pricing" className="py-24 px-6 bg-[#F7F5F0]">
         <div className="max-w-5xl mx-auto text-center space-y-12">
           <div className="space-y-4 max-w-2xl mx-auto">
             <p className="text-sm font-semibold text-neutral-500 uppercase tracking-[0.4em]">Memberships</p>
-            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight font-heading text-[#151515]">
               Select the signature experience that resonates with your organization.
             </h2>
           </div>
@@ -411,8 +411,8 @@ export default function Home() {
                 key={tier.title}
                 className={`relative rounded-3xl border ${
                   tier.highlighted
-                    ? "border-neutral-900 bg-neutral-900 text-white shadow-2xl shadow-neutral-900/30"
-                    : "border-neutral-200 bg-white text-neutral-900 shadow-lg shadow-neutral-900/5"
+                    ? "border-[#151515] bg-[#151515] text-white shadow-[0_45px_80px_rgba(21,21,21,0.28)]"
+                    : "border-[#E8E2D7] bg-white text-[#151515] shadow-[0_30px_60px_rgba(21,21,21,0.07)]"
                 } p-10 space-y-6`}
               >
                 {tier.badge && (
@@ -425,7 +425,7 @@ export default function Home() {
                   </span>
                 )}
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-semibold">{tier.title}</h3>
+                  <h3 className="text-2xl font-semibold font-heading">{tier.title}</h3>
                   <p className={`text-sm ${tier.highlighted ? "text-white/70" : "text-neutral-500"}`}>{tier.description}</p>
                 </div>
                 <div>
@@ -465,15 +465,15 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-neutral-200 bg-white">
+      <footer className="border-t border-[#E8E2D7] bg-[#FDFDFC]">
         <div className="max-w-6xl mx-auto px-6 py-12 grid md:grid-cols-4 gap-12">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-neutral-900 text-white flex items-center justify-center text-sm font-semibold">
+              <div className="w-9 h-9 rounded-xl bg-[#151515] text-white flex items-center justify-center text-sm font-semibold shadow-[0_15px_40px_rgba(21,21,21,0.15)]">
                 Z
               </div>
               <div>
-                <p className="font-semibold">Zalient Productivity</p>
+                <p className="font-semibold font-heading text-[#151515]">Zalient Productivity</p>
                 <p className="text-xs uppercase tracking-[0.2em] text-neutral-400">Signature Edition</p>
               </div>
             </div>
@@ -488,7 +488,7 @@ export default function Home() {
           </div>
 
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-neutral-900 uppercase tracking-[0.3em]">Product</h4>
+            <h4 className="text-sm font-semibold text-[#151515] uppercase tracking-[0.3em] font-heading">Product</h4>
             <ul className="space-y-2 text-sm text-neutral-500">
               <li><a href="#" className="hover:text-neutral-900 transition">Overview</a></li>
               <li><a href="#" className="hover:text-neutral-900 transition">Automation Suite</a></li>
@@ -498,7 +498,7 @@ export default function Home() {
           </div>
 
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-neutral-900 uppercase tracking-[0.3em]">Company</h4>
+            <h4 className="text-sm font-semibold text-[#151515] uppercase tracking-[0.3em] font-heading">Company</h4>
             <ul className="space-y-2 text-sm text-neutral-500">
               <li><a href="#" className="hover:text-neutral-900 transition">Studio</a></li>
               <li><a href="#" className="hover:text-neutral-900 transition">Press</a></li>
@@ -508,7 +508,7 @@ export default function Home() {
           </div>
 
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-neutral-900 uppercase tracking-[0.3em]">Connect</h4>
+            <h4 className="text-sm font-semibold text-[#151515] uppercase tracking-[0.3em] font-heading">Connect</h4>
             <ul className="space-y-2 text-sm text-neutral-500">
               <li><a href="#" className="hover:text-neutral-900 transition">LinkedIn</a></li>
               <li><a href="#" className="hover:text-neutral-900 transition">Twitter</a></li>
@@ -517,7 +517,7 @@ export default function Home() {
             </ul>
           </div>
         </div>
-        <div className="border-t border-neutral-200 py-6 text-center text-sm text-neutral-500">
+        <div className="border-t border-[#E8E2D7] py-6 text-center text-sm text-neutral-500">
           © {new Date().getFullYear()} Zalient Productivity. Crafted in collaborative studios worldwide.
         </div>
       </footer>
