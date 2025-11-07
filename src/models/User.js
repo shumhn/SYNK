@@ -37,6 +37,69 @@ const UsersSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
     },
+    roles: {
+      type: [String],
+      enum: ["admin", "hr", "manager", "employee", "viewer"],
+      default: ["employee"],
+      index: true,
+    },
+    permissions: {
+      type: [String],
+      default: [],
+    },
+    department: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      index: true,
+    },
+    team: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Team",
+      index: true,
+    },
+    designation: { type: String, trim: true },
+    employmentType: {
+      type: String,
+      enum: ["full_time", "part_time", "contractor"],
+      default: "full_time",
+    },
+    lastLoginAt: { type: Date },
+    isOnline: { type: Boolean, default: false },
+    activeSessions: [
+      {
+        sessionId: { type: String, required: true },
+        userAgent: { type: String },
+        ip: { type: String },
+        createdAt: { type: Date, default: Date.now },
+        lastSeenAt: { type: Date },
+        revokedAt: { type: Date },
+      },
+    ],
+    profile: {
+      skills: { type: [String], default: [] },
+      experience: [
+        {
+          company: { type: String },
+          title: { type: String },
+          startDate: { type: Date },
+          endDate: { type: Date },
+          description: { type: String },
+        },
+      ],
+      social: {
+        linkedin: { type: String },
+        github: { type: String },
+        twitter: { type: String },
+        website: { type: String },
+      },
+      completion: { type: Number, default: 0, min: 0, max: 100 },
+    },
+    performance: {
+      tasksCompleted: { type: Number, default: 0 },
+      onTimeRate: { type: Number, default: 0 },
+      velocity: { type: Number, default: 0 },
+      lastUpdatedAt: { type: Date },
+    },
   },
   {
     timestamps: true,

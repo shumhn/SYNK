@@ -5,6 +5,9 @@ import bcrypt from "bcrypt";
 
 import connectToDatabase from "@/lib/db/mongodb";
 import User from "@/models/User";
+import { generateToken } from "@/lib/auth/jwt";
+import { cookies } from "next/headers";
+import { randomUUID } from "crypto";
 
 const authOptions = {
   session: {
@@ -107,6 +110,35 @@ const authOptions = {
         token.picture = existingUser.image;
         token.provider = "google";
         token.email = existingUser.email;
+
+        // Set JWT cookie for admin access
+        const sessionId = randomUUID();
+        await User.updateOne(
+          { _id: existingUser._id },
+          {
+            $set: { lastLoginAt: new Date(), isOnline: true },
+            $push: {
+              activeSessions: {
+                sessionId,
+                userAgent: "Google SSO",
+                ip: undefined, // Can't get IP in callback
+                createdAt: new Date(),
+                lastSeenAt: new Date(),
+              },
+            },
+          }
+        );
+        const jwtToken = generateToken(existingUser, { sessionId });
+        const cookieStore = await cookies();
+        cookieStore.set({
+          name: "token",
+          value: jwtToken,
+          httpOnly: true,
+          path: "/",
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge: 60 * 60 * 24 * 3,
+        });
 
         return token;
       }

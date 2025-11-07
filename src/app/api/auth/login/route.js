@@ -5,6 +5,7 @@ import { LoginSchema } from "@/lib/validations/user";
 import bcrypt from 'bcrypt'
 import { cookies } from "next/headers";
 import { generateToken } from "@/lib/auth/jwt";
+import { randomUUID } from "crypto";
 
 export async function POST(req) {
     try {
@@ -36,7 +37,27 @@ export async function POST(req) {
 
         }
 
-        const token = generateToken(user);
+        const sessionId = randomUUID();
+        const userAgent = req.headers.get("user-agent") || undefined;
+        const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || req.headers.get("x-real-ip") || undefined;
+
+        await User.updateOne(
+            { _id: user._id },
+            {
+                $set: { lastLoginAt: new Date(), isOnline: true },
+                $push: {
+                    activeSessions: {
+                        sessionId,
+                        userAgent,
+                        ip,
+                        createdAt: new Date(),
+                        lastSeenAt: new Date(),
+                    },
+                },
+            }
+        );
+
+        const token = generateToken(user, { sessionId });
 
         const cookieStore = await cookies();
 

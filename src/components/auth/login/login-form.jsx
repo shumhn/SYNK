@@ -16,7 +16,7 @@ export function LoginForm() {
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
     try {
-      await signIn("google", { callbackUrl: "/" });
+      await signIn("google", { callbackUrl: "/thank-you" });
     } catch (error) {
       setErrors({ global: "Failed to sign in with Google" });
       setGoogleLoading(false);
@@ -46,7 +46,7 @@ export function LoginForm() {
       if (data.error === false) {
         setMessage(data.message);
         setTimeout(() => {
-          router.push("/blogs/view");
+          router.push("/thank-you");
         }, 1000);
       } else {
         setErrors(data.message || { global: "Something went wrong" });
