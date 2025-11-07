@@ -17,11 +17,13 @@ export default function TaskDetailModal({ task, onClose }) {
   const [attachments, setAttachments] = useState(task.attachments || []);
   const [newAttachment, setNewAttachment] = useState({ filename: "", url: "" });
   const [recurring, setRecurring] = useState(task.recurring || { enabled: false, frequency: "weekly", interval: 1, endDate: "" });
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     loadSubtasks();
     loadComments();
     loadProjectTasks();
+    loadUsers();
   }, [task._id]);
 
   async function loadSubtasks() {
@@ -29,6 +31,14 @@ export default function TaskDetailModal({ task, onClose }) {
       const res = await fetch(`/api/tasks/${task._id}/subtasks`);
       const data = await res.json();
       if (!data.error) setSubtasks(data.data);
+    } catch (e) {}
+  }
+
+  async function loadUsers() {
+    try {
+      const res = await fetch(`/api/users`);
+      const data = await res.json();
+      if (!data.error) setUsers(data.data || []);
     } catch (e) {}
   }
 
@@ -213,7 +223,10 @@ export default function TaskDetailModal({ task, onClose }) {
                 </div>
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">Assignee</label>
-                  <input value={newSubtask.assignee} onChange={(e)=>setNewSubtask({...newSubtask, assignee: e.target.value})} placeholder="User ID" className="px-3 py-2 rounded bg-neutral-800 border border-neutral-700" />
+                  <select value={newSubtask.assignee} onChange={(e)=>setNewSubtask({...newSubtask, assignee: e.target.value})} className="px-3 py-2 rounded bg-neutral-800 border border-neutral-700">
+                    <option value="">—</option>
+                    {users.map((u)=>(<option key={u._id} value={u._id}>{u.username}</option>))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">Est. Hours</label>

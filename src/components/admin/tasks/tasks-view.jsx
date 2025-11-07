@@ -35,6 +35,17 @@ export default function TasksView({ initialTasks, projects, users, filters }) {
   const [bulkProject, setBulkProject] = useState("");
   const [bulkAssignee, setBulkAssignee] = useState("");
 
+  async function updateTask(id, patch) {
+    try {
+      await fetch(`/api/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      router.refresh();
+    } catch {}
+  }
+
   function toggleSelect(id) {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
@@ -133,8 +144,32 @@ export default function TasksView({ initialTasks, projects, users, filters }) {
                 <td className="p-3">
                   {t.assignee?.username || t.assignees?.map((a) => a.username).join(", ") || "—"}
                 </td>
-                <td className="p-3"><StatusBadge status={t.status} /></td>
-                <td className="p-3"><PriorityBadge priority={t.priority} /></td>
+                <td className="p-3">
+                  <select
+                    defaultValue={t.status}
+                    onChange={(e)=>updateTask(t._id, { status: e.target.value })}
+                    className="px-2 py-1 rounded bg-neutral-900 border border-neutral-800 text-xs"
+                  >
+                    <option value="todo">To Do</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="review">Review</option>
+                    <option value="completed">Completed</option>
+                    <option value="blocked">Blocked</option>
+                  </select>
+                </td>
+                <td className="p-3">
+                  <select
+                    defaultValue={t.priority}
+                    onChange={(e)=>updateTask(t._id, { priority: e.target.value })}
+                    className="px-2 py-1 rounded bg-neutral-900 border border-neutral-800 text-xs"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </td>
                 <td className="p-3">{t.taskType}</td>
                 <td className="p-3 text-gray-300">{t.dueDate ? new Date(t.dueDate).toLocaleDateString() : "—"}</td>
               </tr>

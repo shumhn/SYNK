@@ -7,10 +7,11 @@ import MilestoneModal from "./milestone-modal";
 import TaskModal from "./task-modal";
 import TimelineView from "./timeline-view";
 import TemplateTaskModal from "./template-task-modal";
+import ProjectDependencies from "./project-dependencies";
 
 export default function ProjectTabs({ tab, project, milestones, tasks, allDepartments, allUsers }) {
   const router = useRouter();
-  const tabs = ["overview", "timeline", "milestones", "tasks", "budget", "resources", "team", "chat", "files"];
+  const tabs = ["overview", "timeline", "milestones", "tasks", "dependencies", "budget", "resources", "team", "chat", "files"];
   
   function TabButton({ name, active }) {
     return (
@@ -36,6 +37,7 @@ export default function ProjectTabs({ tab, project, milestones, tasks, allDepart
         {tab === "timeline" && <TimelineView project={project} milestones={milestones} tasks={tasks} />}
         {tab === "milestones" && <MilestonesTab project={project} milestones={milestones} />}
         {tab === "tasks" && <TasksTab project={project} tasks={tasks} milestones={milestones} allUsers={allUsers} />}
+        {tab === "dependencies" && <ProjectDependencies projectId={project._id} />}
         {tab === "budget" && <BudgetTab project={project} />}
         {tab === "resources" && <ResourcesTab project={project} />}
         {tab === "team" && <TeamTab project={project} allDepartments={allDepartments} allUsers={allUsers} />}

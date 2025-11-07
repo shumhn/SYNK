@@ -110,6 +110,21 @@ UsersSchema.pre("save", async function (next) {
   if (this.isModified("password") && this.password) {
     this.password = await hash(this.password, 10);
   }
+  
+  // Auto-calculate profile completion
+  if (this.isModified("profile") || this.isModified("designation")) {
+    let score = 0;
+    let total = 5;
+    
+    if (this.profile?.skills?.length > 0) score += 1;
+    if (this.profile?.experience?.length > 0) score += 1;
+    if (this.profile?.social?.linkedin || this.profile?.social?.github) score += 1;
+    if (this.designation) score += 1;
+    if (this.department) score += 1;
+    
+    this.profile.completion = Math.round((score / total) * 100);
+  }
+  
   next();
 });
 

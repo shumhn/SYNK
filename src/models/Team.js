@@ -7,6 +7,7 @@ const TeamSchema = new mongoose.Schema(
     description: { type: String },
     archived: { type: Boolean, default: false, index: true },
     lead: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
+    members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   { timestamps: true }
 );
