@@ -15,10 +15,17 @@ export function LoginForm() {
 
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
+    setErrors({});
     try {
-      await signIn("google", { callbackUrl: "/admin/users" });
+      console.log("Starting Google sign-in...");
+      const result = await signIn("google", { 
+        callbackUrl: "/admin/users",
+        redirect: true 
+      });
+      console.log("Google sign-in result:", result);
     } catch (error) {
-      setErrors({ global: "Failed to sign in with Google" });
+      console.error("Google sign-in error:", error);
+      setErrors({ global: "Failed to sign in with Google: " + error.message });
       setGoogleLoading(false);
     }
   }
