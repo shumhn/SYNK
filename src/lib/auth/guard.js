@@ -10,8 +10,11 @@ export async function getAuthUser() {
   
   // First check for NextAuth session (Google OAuth)
   const session = await getServerSession(authOptions);
+  console.log("Session in getAuthUser:", session?.user);
+  
   if (session?.user?.id) {
     const user = await User.findById(session.user.id).lean();
+    console.log("User found from session:", user);
     if (user) return user;
   }
 

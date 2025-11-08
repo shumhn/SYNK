@@ -84,6 +84,7 @@ const authOptions = {
             image: picture,
             provider: "google",
             googleId,
+            roles: ["admin"], // Give admin role to first Google user
           });
         } else {
           let updated = false;
@@ -109,6 +110,13 @@ const authOptions = {
         token.picture = existingUser.image;
         token.provider = "google";
         token.email = existingUser.email;
+
+        console.log("Google user found:", {
+          id: existingUser._id,
+          username: existingUser.username,
+          roles: existingUser.roles,
+          email: existingUser.email
+        });
 
         // Update user session info
         const sessionId = randomUUID();
