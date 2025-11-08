@@ -57,7 +57,7 @@ const authOptions = {
     }),
   ],
   pages: {
-    signIn: "/auth/signin",
+    signIn: "/auth/login",
   },
   callbacks: {
     async jwt({ token, account, user, trigger, session }) {
@@ -168,6 +168,13 @@ const authOptions = {
         session.user.provider = token.provider;
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      // Always redirect to admin area after successful sign-in
+      if (url.startsWith(baseUrl)) {
+        return `${baseUrl}/admin/users`;
+      }
+      return `${baseUrl}/admin/users`;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,

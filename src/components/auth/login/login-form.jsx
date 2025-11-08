@@ -16,7 +16,7 @@ export function LoginForm() {
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
     try {
-      await signIn("google", { callbackUrl: "/thank-you" });
+      await signIn("google", { callbackUrl: "/admin/users" });
     } catch (error) {
       setErrors({ global: "Failed to sign in with Google" });
       setGoogleLoading(false);
