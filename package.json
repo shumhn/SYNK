@@ -19,18 +19,20 @@
     "mongoose": "^8.19.1",
     "next": "15.5.5",
     "next-auth": "^4.24.11",
+    "qrcode": "^1.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "zod": "^3.25.76",
-    "resend": "^3.3.0"
+    "resend": "^3.3.0",
+    "speakeasy": "^2.0.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/jest": "^29.5.12",
     "eslint": "^9",
     "eslint-config-next": "15.5.5",
-    "tailwindcss": "^4",
     "jest": "^29.7.0",
-    "@types/jest": "^29.5.12"
+    "tailwindcss": "^4"
   }
 }

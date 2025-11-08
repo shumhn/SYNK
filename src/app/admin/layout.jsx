@@ -9,9 +9,9 @@ export default async function AdminLayout({ children }) {
   if (!allowed) redirect("/auth/login");
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[#0A0A0A] text-neutral-100">
       <AdminNavbar />
-      <div className="mx-auto max-w-6xl px-4 py-6">{children}</div>
+      <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
     </div>
   );
 }

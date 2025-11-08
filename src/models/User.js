@@ -65,6 +65,13 @@ const UsersSchema = new mongoose.Schema(
     },
     lastLoginAt: { type: Date },
     isOnline: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: true, index: true }, // Account activation/deactivation
+    twoFA: {
+      enabled: { type: Boolean, default: false },
+      secret: { type: String, select: false }, // TOTP secret
+      backupCodes: { type: [String], select: false, default: [] }, // One-time backup codes
+      verifiedAt: { type: Date },
+    },
     activeSessions: [
       {
         sessionId: { type: String, required: true },
