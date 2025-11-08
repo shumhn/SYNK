@@ -8,6 +8,7 @@ import TaskModal from "./task-modal";
 import TimelineView from "./timeline-view";
 import TemplateTaskModal from "./template-task-modal";
 import ProjectDependencies from "./project-dependencies";
+import ProjectChat from "@/components/chat/project-chat";
 
 export default function ProjectTabs({ tab, project, milestones, tasks, allDepartments, allUsers }) {
   const router = useRouter();
@@ -41,7 +42,11 @@ export default function ProjectTabs({ tab, project, milestones, tasks, allDepart
         {tab === "budget" && <BudgetTab project={project} />}
         {tab === "resources" && <ResourcesTab project={project} />}
         {tab === "team" && <TeamTab project={project} allDepartments={allDepartments} allUsers={allUsers} />}
-        {tab === "chat" && <ChatTab project={project} />}
+        {tab === "chat" && (
+          <div className="h-[600px]">
+            <ProjectChat projectId={project._id} />
+          </div>
+        )}
         {tab === "files" && <FilesTab project={project} />}
       </div>
     </div>
@@ -361,73 +366,6 @@ function ResourcesTab({ project }) {
         <button disabled={loading} className="bg-white text-black px-4 py-2 rounded">{loading ? "Saving..." : "Save Resources"}</button>
       </div>
     </form>
-  );
-}
-
-function ChatTab({ project }) {
-  const [messages, setMessages] = useState([]);
-  const [content, setContent] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function loadMessages() {
-    try {
-      const res = await fetch(`/api/projects/${project._id}/messages`);
-      const data = await res.json();
-      if (!data.error) setMessages(data.data);
-    } catch (e) {
-      // no-op
-    }
-  }
-
-  useState(() => { loadMessages(); }, []);
-
-  async function onSend(e) {
-    e.preventDefault();
-    if (!content.trim()) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/projects/${project._id}/messages`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-      const data = await res.json();
-      if (!data.error) {
-        setMessages((prev) => [...prev, data.data]);
-        setContent("");
-      }
-    } catch (e) {
-      // no-op
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="h-96 overflow-y-auto space-y-3 p-4 rounded border border-neutral-800 bg-neutral-950">
-        {messages.map((m) => (
-          <div key={m._id} className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-neutral-800 flex-shrink-0" />
-            <div>
-              <div className="text-sm font-medium">{m.author?.username || "Unknown"}</div>
-              <div className="text-sm text-gray-300">{m.content}</div>
-              <div className="text-xs text-gray-500 mt-1">{new Date(m.createdAt).toLocaleString()}</div>
-            </div>
-          </div>
-        ))}
-        {messages.length === 0 && <div className="text-center text-gray-400">No messages yet. Start the conversation.</div>}
-      </div>
-      <form onSubmit={onSend} className="flex gap-2">
-        <input
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
-        />
-        <button disabled={loading} className="bg-white text-black px-4 py-2 rounded">{loading ? "Sending..." : "Send"}</button>
-      </form>
-    </div>
   );
 }
 

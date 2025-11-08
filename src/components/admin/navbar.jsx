@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
+import NotificationBell from "@/components/notifications/notification-bell";
 
 export default function AdminNavbar() {
   const router = useRouter();
@@ -34,8 +35,12 @@ export default function AdminNavbar() {
           <Link href="/admin/tasks" className={`text-sm ${isActive("/admin/tasks") ? "font-semibold" : "text-gray-300"}`}>Tasks</Link>
           <Link href="/admin/templates" className={`text-sm ${isActive("/admin/templates") ? "font-semibold" : "text-gray-300"}`}>Templates</Link>
           <Link href="/admin/channels" className={`text-sm ${isActive("/admin/channels") ? "font-semibold" : "text-gray-300"}`}>Channels</Link>
+          <Link href="/admin/settings/integrations" className={`text-sm ${isActive("/admin/settings/integrations") ? "font-semibold" : "text-gray-300"}`}>Settings</Link>
         </div>
-        <button onClick={onLogout} disabled={loading} className="text-sm bg-white text-black px-3 py-1 rounded">{loading ? "Logging out..." : "Logout"}</button>
+        <div className="flex items-center gap-4">
+          <NotificationBell />
+          <button onClick={onLogout} disabled={loading} className="text-sm bg-white text-black px-3 py-1 rounded">{loading ? "Logging out..." : "Logout"}</button>
+        </div>
       </div>
     </div>
   );

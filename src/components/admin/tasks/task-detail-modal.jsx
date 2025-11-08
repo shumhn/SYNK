@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ProjectChat from "@/components/chat/project-chat";
 import { useRouter } from "next/navigation";
 
 export default function TaskDetailModal({ task, onClose }) {
@@ -141,7 +142,7 @@ export default function TaskDetailModal({ task, onClose }) {
     router.refresh();
   }
 
-  const tabs = ["details", "subtasks", "comments", "checklist", "attachments", "dependencies", "recurring"];
+  const tabs = ["details", "subtasks", "comments", "checklist", "attachments", "dependencies", "recurring", "chat"];
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -394,6 +395,12 @@ export default function TaskDetailModal({ task, onClose }) {
               </div>
               <button onClick={saveDependencies} className="bg-white text-black px-4 py-2 rounded">Save Dependencies</button>
               <div className="text-xs text-gray-500">Blocking enforced: cannot move to In Progress/Review/Completed when blockers remain.</div>
+            </div>
+          )}
+
+          {activeTab === "chat" && (
+            <div className="h-[500px]">
+              <ProjectChat projectId={task.project?._id || task.project} taskId={task._id} />
             </div>
           )}
 
