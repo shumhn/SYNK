@@ -70,7 +70,7 @@ export const CreateUserSchema = z.object({
   department: z.string().optional(),
   team: z.string().optional(),
   designation: z.string().optional(),
-  employmentType: z.enum(["full_time", "part_time", "contractor"]).optional(),
+  employmentType: z.enum(["full_time", "part_time", "contractor", "intern"]).optional(),
   image: z.string().optional(),
   profile: z
     .object({

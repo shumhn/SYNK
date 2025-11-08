@@ -15,13 +15,17 @@ const NotificationSchema = new mongoose.Schema(
         "project_invite", // invited to project
         "task_due_soon", // task due in 24h
         "task_overdue", // task is overdue
+        "onboarding_submitted", // new user submitted onboarding
+        "user_approved", // user account approved
+        "user_rejected", // user account rejected
+        "role_assigned", // new role assigned to user
       ],
       index: true,
     },
     title: { type: String, required: true },
     message: String,
     actor: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Who triggered this notification
-    refType: { type: String, enum: ["Task", "Project", "ProjectMessage", "TaskComment"] },
+    refType: { type: String, enum: ["Task", "Project", "ProjectMessage", "TaskComment", "User"] },
     refId: mongoose.Schema.Types.ObjectId, // Reference to the related object
     metadata: mongoose.Schema.Types.Mixed, // Additional context
     readAt: Date,

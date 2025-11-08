@@ -31,7 +31,8 @@ export async function POST(req) {
         await User.create({
             username,
             email,
-            password,        });
+            password, // This will be hashed by the pre-save hook in User.js
+        });
 
         return NextResponse.json(
             {

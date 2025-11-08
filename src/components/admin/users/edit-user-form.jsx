@@ -7,6 +7,61 @@ const EMPLOYMENT_TYPES = [
   { value: "full_time", label: "Full-time" },
   { value: "part_time", label: "Part-time" },
   { value: "contractor", label: "Contractor" },
+  { value: "intern", label: "Intern" },
+];
+
+const DESIGNATION_ROLES = [
+  { value: "software_engineer", label: "Software Engineer" },
+  { value: "senior_software_engineer", label: "Senior Software Engineer" },
+  { value: "lead_software_engineer", label: "Lead Software Engineer" },
+  { value: "engineering_manager", label: "Engineering Manager" },
+  { value: "director_of_engineering", label: "Director of Engineering" },
+  { value: "vp_of_engineering", label: "VP of Engineering" },
+  { value: "chief_technology_officer", label: "Chief Technology Officer" },
+  { value: "frontend_developer", label: "Frontend Developer" },
+  { value: "backend_developer", label: "Backend Developer" },
+  { value: "full_stack_developer", label: "Full Stack Developer" },
+  { value: "devops_engineer", label: "DevOps Engineer" },
+  { value: "data_engineer", label: "Data Engineer" },
+  { value: "data_scientist", label: "Data Scientist" },
+  { value: "product_manager", label: "Product Manager" },
+  { value: "architect", label: "Architect" },
+  { value: "security_engineer", label: "Security Engineer" },
+  { value: "qa_engineer", label: "QA Engineer" },
+  { value: "chief_executive_officer", label: "Chief Executive Officer" },
+  { value: "chief_operating_officer", label: "Chief Operating Officer" },
+  { value: "chief_financial_officer", label: "Chief Financial Officer" },
+  { value: "sales_representative", label: "Sales Representative" },
+  { value: "senior_sales_representative", label: "Senior Sales Representative" },
+  { value: "sales_manager", label: "Sales Manager" },
+  { value: "director_of_sales", label: "Director of Sales" },
+  { value: "vp_of_sales", label: "VP of Sales" },
+  { value: "marketing_specialist", label: "Marketing Specialist" },
+  { value: "marketing_manager", label: "Marketing Manager" },
+  { value: "director_of_marketing", label: "Director of Marketing" },
+  { value: "vp_of_marketing", label: "VP of Marketing" },
+  { value: "content_marketing_manager", label: "Content Marketing Manager" },
+  { value: "growth_hacker", label: "Growth Hacker" },
+  { value: "hr_specialist", label: "HR Specialist" },
+  { value: "hr_manager", label: "HR Manager" },
+  { value: "director_of_human_resources", label: "Director of Human Resources" },
+  { value: "vp_of_human_resources", label: "VP of Human Resources" },
+  { value: "recruiter", label: "Recruiter" },
+  { value: "talent_acquisition_manager", label: "Talent Acquisition Manager" },
+  { value: "accountant", label: "Accountant" },
+  { value: "financial_analyst", label: "Financial Analyst" },
+  { value: "finance_manager", label: "Finance Manager" },
+  { value: "operations_manager", label: "Operations Manager" },
+  { value: "business_analyst", label: "Business Analyst" },
+  { value: "ux_ui_designer", label: "UX/UI Designer" },
+  { value: "graphic_designer", label: "Graphic Designer" },
+  { value: "creative_director", label: "Creative Director" },
+  { value: "customer_support_specialist", label: "Customer Support Specialist" },
+  { value: "customer_success_manager", label: "Customer Success Manager" },
+  { value: "technical_support_engineer", label: "Technical Support Engineer" },
+  { value: "office_manager", label: "Office Manager" },
+  { value: "executive_assistant", label: "Executive Assistant" },
+  { value: "project_coordinator", label: "Project Coordinator" },
 ];
 
 export default function EditUserForm({ user, departments = [], teams = [] }) {
@@ -21,7 +76,6 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
     employmentType: user.employmentType || "",
     department: user.department?._id || "",
     team: user.team?._id || "",
-    profileCompletion: typeof user?.profile?.completion === 'number' ? user.profile.completion : 0,
     skills: (user?.profile?.skills || []).join(", "),
     experience: (user?.profile?.experience || []).map((exp, i) => ({
       id: i,
@@ -54,6 +108,19 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
     return map;
   }, [teams]);
 
+  const completion = useMemo(() => {
+    let score = 0;
+    let total = 5;
+    const skillsCount = (form.skills || "").split(",").map((s) => s.trim()).filter(Boolean).length;
+    if (skillsCount > 0) score += 1;
+    const hasExperience = Array.isArray(form.experience) && form.experience.some((e) => (e.company && e.company.trim()) || (e.title && e.title.trim()));
+    if (hasExperience) score += 1;
+    if (form.social?.linkedin || form.social?.github) score += 1;
+    if (form.designation) score += 1;
+    if (form.department) score += 1;
+    return Math.round((score / total) * 100);
+  }, [form]);
+
   function onChange(e) {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
@@ -72,7 +139,6 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
         department: form.department || undefined,
         team: form.team || undefined,
         profile: {
-          completion: Number(form.profileCompletion) || 0,
           skills: form.skills ? form.skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
           experience: form.experience
             .filter((exp) => exp.company || exp.title)
@@ -135,7 +201,12 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
         </div>
         <div>
           <label className="block text-sm mb-1">Designation</label>
-          <input name="designation" value={form.designation} onChange={onChange} className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800" />
+          <select name="designation" value={form.designation} onChange={onChange} className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800">
+            <option value="">Select Your Role</option>
+            {DESIGNATION_ROLES.map((role) => (
+              <option key={role.value} value={role.value}>{role.label}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm mb-1">Employment Type</label>
@@ -160,16 +231,28 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
         </div>
         <div>
           <label className="block text-sm mb-1">Team</label>
-          <select name="team" value={form.team} onChange={onChange} className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800">
+          <select name="team" value={form.team} onChange={onChange} disabled={!form.department} className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed">
             <option value="">Unassigned</option>
-            {(teamsByDept[form.department || ""] || teams).map((t)=> (
+            {(teamsByDept[form.department || ""] || []).map((t)=> (
               <option key={t._id} value={t._id}>{t.name}{t.department?.name ? ` (${t.department.name})` : ''}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-sm mb-1">Profile Completion (0-100)</label>
-          <input type="number" min={0} max={100} name="profileCompletion" value={form.profileCompletion} onChange={onChange} className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800" />
+          <label className="block text-sm mb-1">Profile Completion</label>
+          <div className="mt-1">
+            <div className="w-full bg-neutral-900 border border-neutral-800 rounded-full h-2 overflow-hidden">
+              <div className="bg-green-600 h-2" style={{ width: `${completion}%` }} />
+            </div>
+            <div className="text-xs text-gray-400 mt-1">{completion}% complete</div>
+            <ul className="mt-2 text-xs space-y-1">
+              <li className={((form.skills || "").trim() ? "text-green-400" : "text-gray-400")}>• Add at least 1 skill</li>
+              <li className={(Array.isArray(form.experience) && form.experience.some((e)=> (e.company && e.company.trim()) || (e.title && e.title.trim())) ? "text-green-400" : "text-gray-400")}>• Add an experience entry</li>
+              <li className={((form.social?.linkedin || form.social?.github) ? "text-green-400" : "text-gray-400")}>• Add LinkedIn or GitHub</li>
+              <li className={(form.designation ? "text-green-400" : "text-gray-400")}>• Choose a designation</li>
+              <li className={(form.department ? "text-green-400" : "text-gray-400")}>• Select a department</li>
+            </ul>
+          </div>
         </div>
         <div>
           <label className="block text-sm mb-1">Skills (comma separated)</label>

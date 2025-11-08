@@ -13,7 +13,10 @@ export default async function AdminUsersPage({ searchParams }) {
   await connectToDatabase();
   const resolvedSearchParams = await searchParams;
   const q = typeof resolvedSearchParams?.q === "string" ? resolvedSearchParams.q.trim() : "";
-  const filter = q
+  const include = typeof resolvedSearchParams?.include === "string" ? resolvedSearchParams.include : "";
+  const includePending = include === "pending" || include === "all";
+
+  const baseFilter = q
     ? {
         $or: [
           { username: { $regex: q, $options: "i" } },
@@ -22,9 +25,10 @@ export default async function AdminUsersPage({ searchParams }) {
         ],
       }
     : {};
+  const filter = includePending ? baseFilter : { ...baseFilter, roles: { $ne: [] } };
 
   const users = await User.find(filter)
-    .select("username email roles isOnline lastLoginAt createdAt")
+    .select("username email roles lastLoginAt createdAt profile activeSessions")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -37,6 +41,10 @@ export default async function AdminUsersPage({ searchParams }) {
 
       <form className="flex gap-2" action="/admin/users" method="get">
         <input name="q" defaultValue={q} placeholder="Search by name, email, designation" className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800" />
+        <select name="include" defaultValue={includePending ? (include || "pending") : "approved"} className="px-3 py-2 rounded bg-neutral-900 border border-neutral-800">
+          <option value="approved">Approved only</option>
+          <option value="pending">Include applicants</option>
+        </select>
         <button className="px-3 py-2 rounded bg-white text-black">Search</button>
       </form>
 
@@ -53,18 +61,40 @@ export default async function AdminUsersPage({ searchParams }) {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
-              <tr key={u._id} className="border-t border-neutral-800">
-                <td className="p-3">{u.username}</td>
-                <td className="p-3 text-gray-300">{u.email}</td>
-                <td className="p-3">{(u.roles || []).join(", ") || "-"}</td>
-                <td className="p-3">{u.isOnline ? <span className="text-green-400">Online</span> : <span className="text-gray-400">Offline</span>}</td>
-                <td className="p-3 text-gray-300">{formatDate(u.lastLoginAt)}</td>
-                <td className="p-3">
-                  <Link href={`/admin/users/${u._id}`} className="underline">View</Link>
-                </td>
-              </tr>
-            ))}
+            {users.map((u) => {
+              const now = Date.now();
+              const windowMs = 2 * 60 * 1000; // 2 minutes window for online
+              const sessions = Array.isArray(u.activeSessions) ? u.activeSessions : [];
+              const derivedOnline = sessions.some((s) => {
+                if (s.revokedAt) return false;
+                const t = s.lastSeenAt ? new Date(s.lastSeenAt).getTime() : 0;
+                return t > 0 && now - t <= windowMs;
+              });
+              const hasProfile = u.profile && (u.profile.skills?.length > 0 || u.profile.experience?.length > 0 || u.profile.social);
+              const needsApproval = hasProfile && (!u.roles || u.roles.length === 0);
+              
+              return (
+                <tr key={u._id} className="border-t border-neutral-800">
+                  <td className="p-3">
+                    <div className="flex items-center gap-2">
+                      {u.username}
+                      {needsApproval && (
+                        <span className="px-2 py-1 text-xs bg-yellow-600 text-white rounded-full">
+                          Pending Approval
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-3 text-gray-300">{u.email}</td>
+                  <td className="p-3">{(u.roles || []).join(", ") || "-"}</td>
+                  <td className="p-3">{derivedOnline ? <span className="text-green-400">Online</span> : <span className="text-gray-400">Offline</span>}</td>
+                  <td className="p-3 text-gray-300">{formatDate(u.lastLoginAt)}</td>
+                  <td className="p-3">
+                    <Link href={`/admin/users/${u._id}`} className="underline">View</Link>
+                  </td>
+                </tr>
+              );
+            })}
             {users.length === 0 && (
               <tr>
                 <td className="p-4 text-center text-gray-400" colSpan={6}>No users found.</td>

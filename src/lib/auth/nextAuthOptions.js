@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { getServerSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
@@ -84,7 +84,7 @@ const authOptions = {
             image: picture,
             provider: "google",
             googleId,
-            roles: ["admin"], // Give admin role to first Google user
+            roles: [], // No default roles on first Google sign-in; admin assigns later
           });
         } else {
           let updated = false;
@@ -110,12 +110,13 @@ const authOptions = {
         token.picture = existingUser.image;
         token.provider = "google";
         token.email = existingUser.email;
+        token.roles = existingUser.roles || []; // Store roles in token
 
         console.log("Google user found:", {
           id: existingUser._id,
           username: existingUser.username,
           roles: existingUser.roles,
-          email: existingUser.email
+          email: existingUser.email,
         });
 
         // Update user session info
@@ -135,7 +136,7 @@ const authOptions = {
             },
           }
         );
-        
+
         // Store sessionId in token for later use
         token.sessionId = sessionId;
 
@@ -154,6 +155,7 @@ const authOptions = {
           token.name = existingUser.username;
           token.picture = existingUser.image;
           token.provider = existingUser.provider;
+          token.roles = existingUser.roles || []; // Store roles in token
         }
       }
 
@@ -170,11 +172,8 @@ const authOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Always redirect to admin area after successful sign-in
-      if (url.startsWith(baseUrl)) {
-        return `${baseUrl}/admin/users`;
-      }
-      return `${baseUrl}/admin/users`;
+      // Redirect to our custom redirect page that checks user roles
+      return `${baseUrl}/auth-redirect`;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
@@ -230,4 +229,3 @@ function sanitizeUsername(base) {
 }
 
 export { handler as GET, handler as POST, authOptions };
-

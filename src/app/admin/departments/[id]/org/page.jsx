@@ -3,6 +3,7 @@ import Department from "@/models/Department";
 import Team from "@/models/Team";
 import User from "@/models/User";
 import Link from "next/link";
+import OrgTreeClient from "@/components/admin/departments/OrgTreeClient";
 import { notFound } from "next/navigation";
 
 function RoleChip({ text }) {
@@ -36,6 +37,40 @@ export default async function OrgChartPage({ params }) {
     }
   }
 
+  // Build hierarchical tree: Department -> Head -> Managers + Teams -> Leads/Members
+  const root = {
+    title: dep.name,
+    subtitle: "Department",
+    badges: ["department"],
+    children: [],
+  };
+
+  const headNode = dep.head
+    ? { title: dep.head.username, subtitle: dep.head.email, badges: [...(dep.head.roles || []), "head"], children: [] }
+    : null;
+
+  const managerNodes = (dep.managers || []).map((m) => ({
+    title: m.username,
+    subtitle: m.email,
+    badges: [...(m.roles || []), "manager"],
+    children: [],
+  }));
+
+  const teamNodes = teams.map((t) => ({
+    title: t.name,
+    subtitle: "Team",
+    badges: ["team"],
+    children: [
+      t.lead ? { title: t.lead.username, subtitle: t.lead.email, badges: [...(t.lead.roles || []), "lead"], children: [] } : null,
+      ...((membersByTeam.get(t._id.toString()) || []).map((m) => ({ title: m.username, subtitle: m.email, badges: m.roles || [], children: [] }))),
+    ].filter(Boolean),
+  }));
+
+  const attachPoint = headNode || root;
+  if (headNode) root.children.push(headNode);
+  if (managerNodes.length) attachPoint.children.push({ title: "Managers", subtitle: "", badges: [], children: managerNodes });
+  if (teamNodes.length) attachPoint.children.push({ title: "Teams", subtitle: "", badges: [], children: teamNodes });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -43,78 +78,30 @@ export default async function OrgChartPage({ params }) {
         <Link href={`/admin/departments/${dep._id}`} className="underline">Back to Department</Link>
       </div>
 
-      <div className="space-y-4">
-        <section className="p-4 rounded border border-neutral-800">
-          <h2 className="text-lg font-semibold mb-3">Head</h2>
-          {dep.head ? (
-            <PersonRow person={dep.head} badges={["head"]} />
-          ) : (
-            <div className="text-sm text-gray-400">No head assigned</div>
-          )}
-        </section>
-
-        <section className="p-4 rounded border border-neutral-800">
-          <h2 className="text-lg font-semibold mb-3">Managers</h2>
-          <div className="space-y-2">
-            {(dep.managers || []).length ? (
-              dep.managers.map((m) => <PersonRow key={m._id} person={m} badges={["manager"]} />)
-            ) : (
-              <div className="text-sm text-gray-400">No managers assigned</div>
-            )}
-          </div>
-        </section>
-
-        <section className="p-4 rounded border border-neutral-800">
-          <h2 className="text-lg font-semibold mb-3">Teams</h2>
-          <div className="space-y-6">
-            {teams.map((t) => (
-              <div key={t._id} className="border border-neutral-800 rounded">
-                <div className="px-4 py-3 bg-neutral-900 border-b border-neutral-800 flex items-center justify-between">
-                  <div className="font-semibold">{t.name}</div>
-                  <div className="text-sm text-gray-300">Lead: {t.lead ? t.lead.username : "—"}</div>
-                </div>
-                <div className="p-4 space-y-2">
-                  {membersByTeam.get(t._id.toString())?.length ? (
-                    membersByTeam.get(t._id.toString()).map((m) => <PersonRow key={m._id} person={m} />)
-                  ) : (
-                    <div className="text-sm text-gray-400">No members</div>
-                  )}
-                </div>
-              </div>
-            ))}
-            {teams.length === 0 && <div className="text-sm text-gray-400">No teams in this department</div>}
-          </div>
-        </section>
-
-        <section className="p-4 rounded border border-neutral-800">
-          <h2 className="text-lg font-semibold mb-3">Unassigned Members</h2>
-          <div className="space-y-2">
-            {unassigned.length ? (
-              unassigned.map((m) => <PersonRow key={m._id} person={m} />)
-            ) : (
-              <div className="text-sm text-gray-400">No unassigned members</div>
-            )}
-          </div>
-        </section>
+      <div className="p-4 rounded border border-neutral-800">
+        <OrgTreeClient
+          root={root}
+          ctas={{
+            departmentId: dep._id.toString(),
+            hasHead: !!dep.head,
+            hasManagers: (dep.managers || []).length > 0,
+            hasTeams: teams.length > 0,
+          }}
+        />
       </div>
-    </div>
-  );
-}
 
-function PersonRow({ person, badges = [] }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border border-neutral-800 rounded px-3 py-2">
-      <div className="flex items-center gap-3">
-        <div className="w-7 h-7 rounded-full bg-neutral-800" />
-        <div>
-          <div className="text-sm">{person.username}</div>
-          <div className="text-xs text-gray-400">{person.email}</div>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        {(person.roles || []).map((r) => <RoleChip key={r} text={r} />)}
-        {badges.map((b) => <RoleChip key={b} text={b} />)}
-      </div>
+      <style>{`
+        .tree ul { padding-top: 20px; position: relative; transition: all .5s; }
+        .tree li { list-style-type: none; text-align: center; position: relative; padding: 20px 5px 0 5px; }
+        .tree li::before, .tree li::after { content: ''; position: absolute; top: 0; right: 50%; border-top: 1px solid #2f2f2f; width: 50%; height: 20px; }
+        .tree li::after { right: auto; left: 50%; border-left: 1px solid #2f2f2f; }
+        .tree li:only-child::before, .tree li:only-child::after { display: none; }
+        .tree li:only-child { padding-top: 0; }
+        .tree li:first-child::before, .tree li:last-child::after { border: 0 none; }
+        .tree li:last-child::before { border-right: 1px solid #2f2f2f; border-radius: 0 5px 0 0; }
+        .tree li:first-child::after { border-radius: 5px 0 0 0; }
+        .tree ul ul::before { content: ''; position: absolute; top: 0; left: 50%; border-left: 1px solid #2f2f2f; width: 0; height: 20px; }
+      `}</style>
     </div>
   );
 }

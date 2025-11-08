@@ -38,14 +38,13 @@ export async function getAuthUser() {
     return null;
   }
   
-  // Update lastSeenAt if sessionId is present
+  // Update lastSeenAt if sessionId is present (online is derived from recent activity)
   if (payload.sessionId) {
     await User.updateOne(
       { _id: payload.id, "activeSessions.sessionId": payload.sessionId },
       {
         $set: {
           "activeSessions.$.lastSeenAt": new Date(),
-          isOnline: true,
         },
       }
     );

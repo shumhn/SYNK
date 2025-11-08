@@ -95,6 +95,9 @@ export default function NotificationBell() {
     if (notification.refType === "ProjectMessage") {
       return `/admin/projects/${notification.metadata?.project}?tab=chat`;
     }
+    if (notification.refType === "User") {
+      return `/admin/users/${notification.refId}`;
+    }
     return "#";
   }
 

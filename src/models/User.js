@@ -60,7 +60,7 @@ const UsersSchema = new mongoose.Schema(
     designation: { type: String, trim: true },
     employmentType: {
       type: String,
-      enum: ["full_time", "part_time", "contractor"],
+      enum: ["full_time", "part_time", "contractor", "intern"],
       default: "full_time",
     },
     lastLoginAt: { type: Date },

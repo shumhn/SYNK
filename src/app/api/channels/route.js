@@ -10,7 +10,15 @@ export async function GET(req) {
   await connectToDatabase();
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim();
-  const filter = q ? { name: { $regex: q, $options: "i" } } : {};
+  const dep = searchParams.get("department")?.trim();
+  const archived = searchParams.get("archived");
+  const filter = {
+    ...(q ? { name: { $regex: q, $options: "i" } } : {}),
+    ...(dep ? { departments: dep } : {}),
+    ...(
+      archived === "true" ? { archived: true } : archived === "false" ? { archived: { $ne: true } } : {}
+    ),
+  };
   const channels = await Channel.find(filter)
     .populate("departments", "name")
     .sort({ createdAt: -1 })

@@ -8,6 +8,7 @@ import SessionsPanel from "@/components/admin/users/sessions-panel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PerformanceTrends from "@/components/admin/users/performance-trends";
+import DeleteUserButton from "@/components/admin/users/delete-user-button";
 
 export default async function AdminUserDetailPage({ params }) {
   const { id } = await params;
@@ -23,7 +24,10 @@ export default async function AdminUserDetailPage({ params }) {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">User: {user.username}</h1>
-        <Link href="/admin/users" className="underline">Back</Link>
+        <div className="flex items-center gap-3">
+          <DeleteUserButton userId={user._id.toString()} />
+          <Link href="/admin/users" className="underline">Back</Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

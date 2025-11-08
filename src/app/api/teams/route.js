@@ -5,8 +5,17 @@ import Department from "@/models/Department";
 import { requireRoles } from "@/lib/auth/guard";
 
 export async function GET(req) {
-  const auth = await requireRoles(["admin", "hr", "manager"]);
-  if (!auth.ok) return NextResponse.json({ error: true, message: auth.error }, { status: auth.status });
+  // Allow viewing during initial setup if no teams exist
+  const existingCount = await Team.countDocuments();
+  if (existingCount === 0) {
+    // No teams exist, allow viewing for authenticated users
+    const auth = await requireRoles([]);
+    if (!auth.ok) return NextResponse.json({ error: true, message: auth.error }, { status: auth.status });
+  } else {
+    // Teams exist, require admin/hr/manager roles
+    const auth = await requireRoles(["admin", "hr", "manager"]);
+    if (!auth.ok) return NextResponse.json({ error: true, message: auth.error }, { status: auth.status });
+  }
   await connectToDatabase();
   const { searchParams } = new URL(req.url);
   const department = searchParams.get("department");
@@ -19,8 +28,17 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
-  const auth = await requireRoles(["admin", "hr"]);
-  if (!auth.ok) return NextResponse.json({ error: true, message: auth.error }, { status: auth.status });
+  // Allow creation during initial setup if no teams exist
+  const existingCount = await Team.countDocuments();
+  if (existingCount === 0) {
+    // No teams exist, allow creation for authenticated users
+    const auth = await requireRoles([]);
+    if (!auth.ok) return NextResponse.json({ error: true, message: auth.error }, { status: auth.status });
+  } else {
+    // Teams exist, require admin/hr roles
+    const auth = await requireRoles(["admin", "hr"]);
+    if (!auth.ok) return NextResponse.json({ error: true, message: auth.error }, { status: auth.status });
+  }
   const body = await req.json();
   const name = typeof body?.name === 'string' ? body.name.trim() : '';
   const department = typeof body?.department === 'string' ? body.department : undefined;

@@ -29,7 +29,7 @@ export default async function DepartmentDetailPage({ params }) {
 
   const [members, otherDepartments, teams] = await Promise.all([
     User.find({ department: id }).select("username email roles team").populate("team", "name").lean(),
-    Department.find({ _id: { $ne: id } }).select("name").sort({ name: 1 }).lean(),
+    Department.find({ _id: { $ne: id }, archived: { $ne: true } }).select("name").sort({ name: 1 }).lean(),
     Team.find({ department: id }).select("name lead").populate("lead", "username").lean(),
   ]);
 

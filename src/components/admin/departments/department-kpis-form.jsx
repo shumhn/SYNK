@@ -55,6 +55,7 @@ export default function DepartmentKpisForm({ departmentId, initial = [] }) {
               <th className="text-left p-2">Label</th>
               <th className="text-left p-2">Target</th>
               <th className="text-left p-2">Current</th>
+              <th className="text-left p-2">Progress</th>
               <th className="text-left p-2">Unit</th>
               <th className="text-left p-2">Action</th>
             </tr>
@@ -66,13 +67,26 @@ export default function DepartmentKpisForm({ departmentId, initial = [] }) {
                 <td className="p-2"><input value={k.label} onChange={(e)=>update(i,{ label: e.target.value })} className="w-full px-2 py-1 rounded bg-neutral-900 border border-neutral-800" /></td>
                 <td className="p-2"><input type="number" value={k.target} onChange={(e)=>update(i,{ target: Number(e.target.value)||0 })} className="w-full px-2 py-1 rounded bg-neutral-900 border border-neutral-800" /></td>
                 <td className="p-2"><input type="number" value={k.current} onChange={(e)=>update(i,{ current: Number(e.target.value)||0 })} className="w-full px-2 py-1 rounded bg-neutral-900 border border-neutral-800" /></td>
+                <td className="p-2">
+                  {(() => {
+                    const pct = k.target > 0 ? Math.max(0, Math.min(100, Math.round((Number(k.current)||0) / (Number(k.target)||1) * 100))) : 0;
+                    return (
+                      <div className="space-y-1">
+                        <div className="text-xs text-gray-400">{pct}%</div>
+                        <div className="w-full bg-neutral-900 rounded-full h-2">
+                          <div className="bg-green-600 h-2 rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </td>
                 <td className="p-2"><input value={k.unit} onChange={(e)=>update(i,{ unit: e.target.value })} className="w-full px-2 py-1 rounded bg-neutral-900 border border-neutral-800" /></td>
                 <td className="p-2"><button type="button" onClick={()=>remove(i)} className="text-red-400 underline">Remove</button></td>
               </tr>
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-3 text-center text-gray-400">No KPIs yet.</td>
+                <td colSpan={7} className="p-3 text-center text-gray-400">No KPIs yet.</td>
               </tr>
             )}
           </tbody>
