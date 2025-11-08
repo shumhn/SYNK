@@ -7,14 +7,15 @@ import TasksView from "@/components/admin/tasks/tasks-view";
 export default async function TasksPage({ searchParams }) {
   await connectToDatabase();
   
-  const q = searchParams?.q?.trim() || "";
-  const status = searchParams?.status;
-  const priority = searchParams?.priority;
-  const taskType = searchParams?.taskType;
-  const assignee = searchParams?.assignee;
-  const project = searchParams?.project;
-  const sortBy = searchParams?.sort || "createdAt";
-  const sortOrder = searchParams?.order === "asc" ? 1 : -1;
+  const resolvedSearchParams = await searchParams;
+  const q = resolvedSearchParams?.q?.trim() || "";
+  const status = resolvedSearchParams?.status;
+  const priority = resolvedSearchParams?.priority;
+  const taskType = resolvedSearchParams?.taskType;
+  const assignee = resolvedSearchParams?.assignee;
+  const project = resolvedSearchParams?.project;
+  const sortBy = resolvedSearchParams?.sort || "createdAt";
+  const sortOrder = resolvedSearchParams?.order === "asc" ? 1 : -1;
   
   const filter = { parentTask: null }; // Only top-level tasks
   

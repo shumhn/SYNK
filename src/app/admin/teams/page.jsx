@@ -11,7 +11,8 @@ function formatDate(d) {
 
 export default async function AdminTeamsPage({ searchParams }) {
   await connectToDatabase();
-  const departmentId = typeof searchParams?.department === "string" ? searchParams.department : "";
+  const resolvedSearchParams = await searchParams;
+  const departmentId = typeof resolvedSearchParams?.department === "string" ? resolvedSearchParams.department : "";
   const filter = departmentId ? { department: departmentId } : {};
   const teams = await Team.find(filter).populate("department", "name").sort({ createdAt: -1 }).lean();
   const departments = await (await import("@/models/Department")).default.find().select("name").sort({ name: 1 }).lean();

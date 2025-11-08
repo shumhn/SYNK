@@ -11,7 +11,8 @@ function formatDate(d) {
 
 export default async function AdminUsersPage({ searchParams }) {
   await connectToDatabase();
-  const q = typeof searchParams?.q === "string" ? searchParams.q.trim() : "";
+  const resolvedSearchParams = await searchParams;
+  const q = typeof resolvedSearchParams?.q === "string" ? resolvedSearchParams.q.trim() : "";
   const filter = q
     ? {
         $or: [

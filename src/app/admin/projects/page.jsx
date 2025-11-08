@@ -28,7 +28,8 @@ function StatusBadge({ status }) {
 
 export default async function ProjectsListPage({ searchParams }) {
   await connectToDatabase();
-  const status = searchParams?.status;
+  const resolvedSearchParams = await searchParams;
+  const status = resolvedSearchParams?.status;
   const filter = status ? { status, archived: false } : { archived: false };
   const projects = await Project.find(filter)
     .select("title description status progress startDate endDate departments managers createdAt")
