@@ -11,6 +11,7 @@ const authOptions = {
   session: {
     strategy: "jwt",
   },
+  debug: process.env.NODE_ENV === "development",
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -156,6 +157,7 @@ const authOptions = {
         session.user.name = token.name;
         session.user.image = token.picture;
         session.user.provider = token.provider;
+        session.user.sessionId = token.sessionId;
       }
       return session;
     },

@@ -18,11 +18,26 @@ export function LoginForm() {
     setErrors({});
     try {
       console.log("Starting Google sign-in...");
+      
+      // Test if signIn function exists
+      console.log("signIn function:", typeof signIn);
+      
+      // Try without redirect first to see if it works
       const result = await signIn("google", { 
         callbackUrl: "/admin/users",
-        redirect: true 
+        redirect: false  // Don't redirect automatically
       });
       console.log("Google sign-in result:", result);
+      
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+      
+      if (result?.ok) {
+        // Manually redirect if successful
+        window.location.href = "/admin/users";
+      }
+      
     } catch (error) {
       console.error("Google sign-in error:", error);
       setErrors({ global: "Failed to sign in with Google: " + error.message });
