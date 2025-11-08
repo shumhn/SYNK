@@ -18,26 +18,16 @@ export function LoginForm() {
     setErrors({});
     try {
       console.log("Starting Google sign-in...");
-      
-      // Test if signIn function exists
-      console.log("signIn function:", typeof signIn);
-      
-      // Try without redirect first to see if it works
-      const result = await signIn("google", { 
+
+      // NextAuth signIn with redirect - this will handle the OAuth flow
+      await signIn("google", {
         callbackUrl: "/admin/users",
-        redirect: false  // Don't redirect automatically
+        redirect: true  // Let NextAuth handle the redirect
       });
-      console.log("Google sign-in result:", result);
-      
-      if (result?.error) {
-        throw new Error(result.error);
-      }
-      
-      if (result?.ok) {
-        // Manually redirect if successful
-        window.location.href = "/admin/users";
-      }
-      
+
+      // If we get here, sign-in started successfully
+      console.log("Google OAuth initiated");
+
     } catch (error) {
       console.error("Google sign-in error:", error);
       setErrors({ global: "Failed to sign in with Google: " + error.message });

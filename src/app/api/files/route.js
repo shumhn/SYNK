@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { verifyAuth } from "@/lib/auth/jwt";
-import { connectDB } from "@/lib/mongodb";
+import { getAuthUser } from "@/lib/auth/guard";
+import connectToDatabase from "@/lib/db/mongodb";
 import FileAsset from "@/models/FileAsset";
 
 /**
@@ -11,12 +11,12 @@ import FileAsset from "@/models/FileAsset";
 export async function POST(request) {
   try {
     // Verify authentication
-    const authResult = await verifyAuth(request);
-    if (!authResult.authenticated) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
+    await connectToDatabase();
 
     const body = await request.json();
     const {
@@ -87,7 +87,7 @@ export async function POST(request) {
       width,
       height,
       duration,
-      uploadedBy: authResult.user.id,
+      uploadedBy: String(user._id),
       project,
       task,
       message,
@@ -120,12 +120,12 @@ export async function POST(request) {
  */
 export async function GET(request) {
   try {
-    const authResult = await verifyAuth(request);
-    if (!authResult.authenticated) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
+    await connectToDatabase();
 
     const { searchParams } = new URL(request.url);
     const project = searchParams.get("project");

@@ -5,7 +5,7 @@ import AdminNavbar from "@/components/admin/navbar";
 export default async function AdminLayout({ children }) {
   const user = await getAuthUser();
   const roles = user?.roles || [];
-  const allowed = roles.some((r) => ["admin", "hr", "manager"].includes(r));
+  const allowed = roles.some((r) => ["admin", "hr", "manager", "employee"].includes(r));
   if (!allowed) redirect("/auth/login");
 
   return (

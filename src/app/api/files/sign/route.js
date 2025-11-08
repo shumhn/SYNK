@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateUploadSignature } from "@/lib/cloudinary";
-import { verifyAuth } from "@/lib/auth/jwt";
+import { getAuthUser } from "@/lib/auth/guard";
 
 /**
  * POST /api/files/sign
@@ -10,8 +10,8 @@ import { verifyAuth } from "@/lib/auth/jwt";
 export async function POST(request) {
   try {
     // Verify authentication
-    const authResult = await verifyAuth(request);
-    if (!authResult.authenticated) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -33,7 +33,7 @@ export async function POST(request) {
 
     return NextResponse.json({
       ...signatureData,
-      userId: authResult.user.id,
+      userId: String(user._id),
     });
   } catch (error) {
     console.error("Error generating upload signature:", error);

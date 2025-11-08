@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { verifyAuth } from "@/lib/auth/jwt";
-import { connectDB } from "@/lib/mongodb";
+import { getAuthUser } from "@/lib/auth/guard";
+import connectToDatabase from "@/lib/db/mongodb";
 import FileAsset from "@/models/FileAsset";
 
 /**
@@ -9,12 +9,12 @@ import FileAsset from "@/models/FileAsset";
  */
 export async function GET(request, { params }) {
   try {
-    const authResult = await verifyAuth(request);
-    if (!authResult.authenticated) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
+    await connectToDatabase();
 
     const file = await FileAsset.findById(params.id)
       .populate("uploadedBy", "username email image")
@@ -43,12 +43,12 @@ export async function GET(request, { params }) {
  */
 export async function PATCH(request, { params }) {
   try {
-    const authResult = await verifyAuth(request);
-    if (!authResult.authenticated) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
+    await connectToDatabase();
 
     const file = await FileAsset.findById(params.id);
     if (!file) {
@@ -57,8 +57,8 @@ export async function PATCH(request, { params }) {
 
     // Check if user has permission to update (owner or admin)
     if (
-      file.uploadedBy.toString() !== authResult.user.id &&
-      !authResult.user.roles?.includes("admin")
+      file.uploadedBy.toString() !== String(user._id) &&
+      !(user.roles || []).includes("admin")
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

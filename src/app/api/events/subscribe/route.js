@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyAuth } from "@/lib/auth/jwt";
+import { getAuthUser } from "@/lib/auth/guard";
 
 // Track active SSE connections
 const connections = new Map();
@@ -11,13 +11,13 @@ const connections = new Map();
  */
 export async function GET(request) {
   try {
-    // Verify authentication
-    const authResult = await verifyAuth(request);
-    if (!authResult.authenticated) {
+    // Verify authentication via server session/JWT
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = authResult.user.id;
+    const userId = String(user._id);
 
     // Create SSE stream
     const stream = new ReadableStream({
