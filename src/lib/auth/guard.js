@@ -2,14 +2,39 @@ import { cookies } from "next/headers";
 import connectToDatabase from "@/lib/db/mongodb";
 import User from "@/models/User";
 import { verifyToken } from "@/lib/auth/jwt";
+import { getServerSession } from "next-auth";
+import { authOptions } from "./nextAuthOptions";
 
 export async function getAuthUser() {
+  await connectToDatabase();
+  
+  // First check for NextAuth session (Google OAuth)
+  const session = await getServerSession(authOptions);
+  if (session?.user?.id) {
+    const user = await User.findById(session.user.id).lean();
+    if (user) return user;
+  }
+
+  // Fallback to custom JWT cookie (credentials login)
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
   if (!token) return null;
-  const payload = verifyToken(token);
-  if (!payload?.id) return null;
-  await connectToDatabase();
+
+  let payload;
+  try {
+    payload = verifyToken(token);
+  } catch (err) {
+    return null;
+  }
+
+  if (
+    typeof payload !== "object" ||
+    !payload ||
+    typeof payload.id !== "string"
+  ) {
+    return null;
+  }
+  
   // Update lastSeenAt if sessionId is present
   if (payload.sessionId) {
     await User.updateOne(
