@@ -3,10 +3,37 @@ import mongoose from "mongoose";
 import connectToDatabase from "@/lib/db/mongodb";
 import Team from "@/models/Team";
 import Department from "@/models/Department";
+import User from "@/models/User";
 import { requireRoles } from "@/lib/auth/guard";
 
 function badId() {
   return NextResponse.json({ error: true, message: "Invalid team id" }, { status: 400 });
+}
+
+export async function GET(_req, { params }) {
+  const auth = await requireRoles(["admin", "hr", "manager"]);
+  if (!auth.ok) return NextResponse.json({ error: true, message: auth.error }, { status: auth.status });
+  const { id } = await params;
+  if (!mongoose.isValidObjectId(id)) return badId();
+  await connectToDatabase();
+  const team = await Team.findById(id).populate("department", "name").lean();
+  if (!team) return NextResponse.json({ error: true, message: "Not found" }, { status: 404 });
+  return NextResponse.json({ error: false, data: team }, { status: 200 });
+}
+
+export async function DELETE(_req, { params }) {
+  const auth = await requireRoles(["admin", "hr"]);
+  if (!auth.ok) return NextResponse.json({ error: true, message: auth.error }, { status: auth.status });
+  const { id } = await params;
+  if (!mongoose.isValidObjectId(id)) return badId();
+  await connectToDatabase();
+  const usage = await User.countDocuments({ team: id });
+  if (usage > 0) {
+    return NextResponse.json({ error: true, message: "Team is referenced by users; reassign or remove references before deleting" }, { status: 400 });
+  }
+  const deleted = await Team.findByIdAndDelete(id);
+  if (!deleted) return NextResponse.json({ error: true, message: "Not found" }, { status: 404 });
+  return NextResponse.json({ error: false, message: "Deleted" }, { status: 200 });
 }
 
 export async function PATCH(req, { params }) {

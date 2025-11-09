@@ -32,7 +32,7 @@ export async function POST(req, { params }) {
   }
   
   const body = await req.json();
-  const { filename, url, size, mimeType } = body;
+  const { filename, url, size, mimeType, publicId, resourceType } = body;
   if (!filename?.trim() || !url?.trim()) {
     return NextResponse.json({ error: true, message: { filename: ["Filename and URL required"] } }, { status: 400 });
   }
@@ -45,6 +45,8 @@ export async function POST(req, { params }) {
     url: url.trim(),
     size: size || undefined,
     mimeType: mimeType || undefined,
+    publicId: publicId || undefined,
+    resourceType: resourceType || undefined,
   });
   
   const populated = await ProjectFile.findById(created._id).populate("uploadedBy", "username email").lean();

@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 
-export default function MilestoneModal({ projectId, milestone, onClose, onSave }) {
+export default function ObjectiveModal({ projectId, objective, phases = [], users = [], onClose, onSave }) {
   const [form, setForm] = useState({
-    title: milestone?.title || "",
-    description: milestone?.description || "",
-    dueDate: milestone?.dueDate ? new Date(milestone.dueDate).toISOString().slice(0, 10) : "",
-    status: milestone?.status || "pending",
-    order: milestone?.order || 0,
+    title: objective?.title || "",
+    description: objective?.description || "",
+    dueDate: objective?.dueDate ? new Date(objective.dueDate).toISOString().slice(0, 10) : "",
+    status: objective?.status || "pending",
+    order: objective?.order || 0,
+    phase: objective?.phase?._id || objective?.phase || "",
+    owner: objective?.owner?._id || objective?.owner || "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -18,19 +20,30 @@ export default function MilestoneModal({ projectId, milestone, onClose, onSave }
     setError(null);
     setLoading(true);
     try {
-      const url = milestone ? `/api/projects/${projectId}/milestones/${milestone._id}` : `/api/projects/${projectId}/milestones`;
-      const method = milestone ? "PATCH" : "POST";
+      const url = objective
+        ? `/api/projects/${projectId}/objectives/${objective._id}`
+        : `/api/projects/${projectId}/objectives`;
+      const method = objective ? "PATCH" : "POST";
+      const payload = {
+        title: form.title,
+        description: form.description,
+        dueDate: form.dueDate,
+        status: form.status,
+        order: Number(form.order) || 0,
+        phase: form.phase || undefined,
+        owner: form.owner || undefined,
+      };
       const res = await fetch(url, {
         method,
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok || data.error) {
         setError(data.message || "Failed to save");
       } else {
         onSave?.();
-        onClose();
+        onClose?.();
       }
     } catch (e) {
       setError("Unexpected error");
@@ -42,7 +55,7 @@ export default function MilestoneModal({ projectId, milestone, onClose, onSave }
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-neutral-900 p-6 rounded max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-semibold mb-4">{milestone ? "Edit Milestone" : "Create Milestone"}</h2>
+        <h2 className="text-lg font-semibold mb-4">{objective ? "Edit Objective" : "Create Objective"}</h2>
         {error && <div className="mb-3 p-2 bg-red-600 text-white rounded text-sm">{String(error)}</div>}
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
@@ -83,7 +96,36 @@ export default function MilestoneModal({ projectId, milestone, onClose, onSave }
                 <option value="pending">Pending</option>
                 <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
-                <option value="delayed">Delayed</option>
+                <option value="blocked">Blocked</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm mb-1">Phase</label>
+              <select
+                value={form.phase}
+                onChange={(e) => setForm({ ...form, phase: e.target.value })}
+                className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700"
+              >
+                <option value="">— None —</option>
+                {phases.map((p) => (
+                  <option key={p._id} value={p._id}>{p.title}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Owner</label>
+              <select
+                value={form.owner}
+                onChange={(e) => setForm({ ...form, owner: e.target.value })}
+                className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700"
+              >
+                <option value="">— Unassigned —</option>
+                {users.map((u) => (
+                  <option key={u._id} value={u._id}>{u.username} ({u.email})</option>
+                ))}
               </select>
             </div>
           </div>

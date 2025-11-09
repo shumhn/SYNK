@@ -1,6 +1,7 @@
 import connectToDatabase from "@/lib/db/mongodb";
 import Team from "@/models/Team";
 import CreateTeamForm from "@/components/admin/teams/create-team-form";
+import TeamsTableClient from "@/components/admin/teams/teams-table-client";
 
 function formatDate(d) {
   if (!d) return "-";
@@ -15,7 +16,19 @@ export default async function AdminTeamsPage({ searchParams }) {
   const departmentId = typeof resolvedSearchParams?.department === "string" ? resolvedSearchParams.department : "";
   const filter = departmentId ? { department: departmentId } : {};
   const teams = await Team.find(filter).populate("department", "name").sort({ createdAt: -1 }).lean();
-  const departments = await (await import("@/models/Department")).default.find().select("name").sort({ name: 1 }).lean();
+  const safeTeams = teams.map((t) => ({
+    _id: t._id.toString(),
+    name: t.name,
+    description: t.description || "",
+    createdAt: t.createdAt,
+    department: t.department ? { _id: t.department._id?.toString?.() || "", name: t.department.name } : null,
+  }));
+  const rawDepartments = await (await import("@/models/Department")).default
+    .find()
+    .select("name")
+    .sort({ name: 1 })
+    .lean();
+  const departments = rawDepartments.map((d) => ({ _id: d._id.toString(), name: d.name }));
 
   return (
     <div className="space-y-6">
@@ -34,33 +47,7 @@ export default async function AdminTeamsPage({ searchParams }) {
         <button className="px-3 py-2 rounded bg-white text-black">Filter</button>
       </form>
 
-      <div className="overflow-x-auto rounded border border-neutral-800">
-        <table className="min-w-full text-sm">
-          <thead className="bg-neutral-900">
-            <tr>
-              <th className="text-left p-3">Name</th>
-              <th className="text-left p-3">Department</th>
-              <th className="text-left p-3">Description</th>
-              <th className="text-left p-3">Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {teams.map((t) => (
-              <tr key={t._id} className="border-t border-neutral-800">
-                <td className="p-3">{t.name}</td>
-                <td className="p-3 text-gray-300">{t.department?.name || "-"}</td>
-                <td className="p-3 text-gray-300">{t.description || "-"}</td>
-                <td className="p-3 text-gray-300">{formatDate(t.createdAt)}</td>
-              </tr>
-            ))}
-            {teams.length === 0 && (
-              <tr>
-                <td className="p-4 text-center text-gray-400" colSpan={4}>No teams found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <TeamsTableClient teams={safeTeams} departments={departments} />
     </div>
   );
 }

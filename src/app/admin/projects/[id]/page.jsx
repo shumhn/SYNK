@@ -2,6 +2,8 @@ import connectToDatabase from "@/lib/db/mongodb";
 import Project from "@/models/Project";
 import Milestone from "@/models/Milestone";
 import Task from "@/models/Task";
+import Phase from "@/models/Phase";
+import Objective from "@/models/Objective";
 import Department from "@/models/Department";
 import User from "@/models/User";
 import Link from "next/link";
@@ -36,11 +38,13 @@ export default async function ProjectDetailPage({ params, searchParams }) {
   
   if (!project) return notFound();
   
-  const [milestones, tasks, allDepartments, allUsers] = await Promise.all([
+  const [milestones, tasks, allDepartments, allUsers, phases, objectives] = await Promise.all([
     Milestone.find({ project: id }).sort({ order: 1 }).lean(),
     Task.find({ project: id }).populate("assignee", "username email").populate("milestone", "title").lean(),
     Department.find({ archived: false }).select("name").sort({ name: 1 }).lean(),
-    User.find().select("username email roles").sort({ username: 1 }).lean(),
+    User.find({ roles: { $exists: true, $ne: [] } }).select("username email roles").sort({ username: 1 }).lean(),
+    Phase.find({ project: id }).sort({ order: 1, createdAt: 1 }).lean(),
+    Objective.find({ project: id }).sort({ order: 1, createdAt: 1 }).lean(),
   ]);
   
   return (
@@ -55,13 +59,15 @@ export default async function ProjectDetailPage({ params, searchParams }) {
             {project.archived && <span className="text-sm text-gray-400">(Archived)</span>}
           </div>
         </div>
-        <ProjectActions projectId={project._id.toString()} archived={project.archived} />
+        <ProjectActions projectId={project._id.toString()} archived={project.archived} status={project.status} />
       </div>
       
       <ProjectTabs
         tab={tab}
         project={JSON.parse(JSON.stringify(project))}
         milestones={JSON.parse(JSON.stringify(milestones))}
+        phases={JSON.parse(JSON.stringify(phases))}
+        objectives={JSON.parse(JSON.stringify(objectives))}
         tasks={JSON.parse(JSON.stringify(tasks))}
         allDepartments={JSON.parse(JSON.stringify(allDepartments))}
         allUsers={JSON.parse(JSON.stringify(allUsers))}

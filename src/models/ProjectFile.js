@@ -8,6 +8,7 @@ const ProjectFileSchema = new mongoose.Schema(
     size: { type: Number },
     url: { type: String, required: true },
     mimeType: { type: String },
+    publicId: { type: String },
   },
   { timestamps: true }
 );
