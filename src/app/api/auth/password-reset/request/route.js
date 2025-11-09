@@ -6,8 +6,6 @@ import PasswordResetToken from "@/models/PasswordResetToken";
 import AuditLog from "@/models/AuditLog";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 /**
  * POST /api/auth/password-reset/request
  * Request password reset email with token
@@ -50,19 +48,24 @@ export async function POST(request) {
   const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${token}`;
   
   try {
-    await resend.emails.send({
-      from: "ZPB <noreply@yourdomain.com>",
-      to: [email],
-      subject: "Password Reset Request",
-      html: `
-        <h2>Password Reset Request</h2>
-        <p>You requested to reset your password for your ZPB account.</p>
-        <p>Click the link below to reset your password (valid for 30 minutes):</p>
-        <p><a href="${resetUrl}">${resetUrl}</a></p>
-        <p>If you didn't request this, please ignore this email.</p>
-        <p>Thanks,<br>The ZPB Team</p>
-      `,
-    });
+    if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.emails.send({
+        from: "ZPB <noreply@yourdomain.com>",
+        to: [email],
+        subject: "Password Reset Request",
+        html: `
+          <h2>Password Reset Request</h2>
+          <p>You requested to reset your password for your ZPB account.</p>
+          <p>Click the link below to reset your password (valid for 30 minutes):</p>
+          <p><a href="${resetUrl}">${resetUrl}</a></p>
+          <p>If you didn't request this, please ignore this email.</p>
+          <p>Thanks,<br>The ZPB Team</p>
+        `,
+      });
+    } else {
+      console.warn("RESEND_API_KEY missing; skipping email send.", { resetUrl });
+    }
   } catch (error) {
     console.error("Error sending password reset email:", error);
   }

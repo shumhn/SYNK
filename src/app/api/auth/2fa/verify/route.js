@@ -4,22 +4,34 @@ import { cookies } from "next/headers";
 import connectToDatabase from "@/lib/db/mongodb";
 import User from "@/models/User";
 import AuditLog from "@/models/AuditLog";
+import { getAuthUser } from "@/lib/auth/guard";
 
 /**
  * POST /api/auth/2fa/verify
  * Verify 2FA token during login
  */
 export async function POST(request) {
-  const body = await request.json();
-  const { email, token } = body;
+  const body = await request.json().catch(() => ({}));
+  const token = body?.token;
+  const email = body?.email;
 
-  if (!email || !token) {
-    return NextResponse.json({ error: "Email and token required" }, { status: 400 });
+  if (!token) {
+    return NextResponse.json({ error: "Token required" }, { status: 400 });
   }
 
   await connectToDatabase();
 
-  const user = await User.findOne({ email: email.toLowerCase() }).select("+twoFA.secret +twoFA.backupCodes");
+  // Prefer current authenticated user (works for Google SSO) and fall back to email
+  let userDoc = null;
+  const authUser = await getAuthUser();
+  if (authUser) {
+    userDoc = await User.findById(authUser._id).select("+twoFA.secret +twoFA.backupCodes");
+  }
+  if (!userDoc && email) {
+    userDoc = await User.findOne({ email: email.toLowerCase() }).select("+twoFA.secret +twoFA.backupCodes");
+  }
+
+  const user = userDoc;
   if (!user || !user.twoFA?.enabled) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }

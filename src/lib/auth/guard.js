@@ -67,9 +67,12 @@ export async function requireRoles(allowed = []) {
   const has = (user.roles || []).some((r) => allowed.includes(r));
   if (!has) return { ok: false, status: 403, error: "Forbidden" };
   
-  // Check 2FA requirement for admin/hr roles
+  // Enforce 2FA for admin/hr routes: must be enabled and verified
   const requiresTwoFA = (user.roles || []).some((r) => ["admin", "hr"].includes(r));
-  if (requiresTwoFA && user.twoFA?.enabled) {
+  if (requiresTwoFA) {
+    if (!user.twoFA?.enabled) {
+      return { ok: false, status: 403, error: "2FA setup required", requiresTwoFASetup: true };
+    }
     const cookieStore = await cookies();
     const twoFAVerified = cookieStore.get("2fa_verified")?.value;
     if (!twoFAVerified) {

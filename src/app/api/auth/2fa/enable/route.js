@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import speakeasy from "speakeasy";
 import crypto from "crypto";
-import { requireRoles } from "@/lib/auth/guard";
+import { getAuthUser } from "@/lib/auth/guard";
 import connectToDatabase from "@/lib/db/mongodb";
 import User from "@/models/User";
 import AuditLog from "@/models/AuditLog";
@@ -11,10 +11,10 @@ import AuditLog from "@/models/AuditLog";
  * Verify TOTP code and enable 2FA
  */
 export async function POST(request) {
-  const auth = await requireRoles(["admin", "hr"]);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const isPrivileged = (user.roles || []).some((r) => ["admin", "hr"].includes(r));
+  if (!isPrivileged) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await request.json();
   const { token } = body;
@@ -26,14 +26,14 @@ export async function POST(request) {
   await connectToDatabase();
 
   // Get user with secret
-  const user = await User.findById(auth.user._id).select("+twoFA.secret");
-  if (!user || !user.twoFA?.secret) {
+  const dbUser = await User.findById(user._id).select("+twoFA.secret");
+  if (!dbUser || !dbUser.twoFA?.secret) {
     return NextResponse.json({ error: "2FA not set up" }, { status: 400 });
   }
 
   // Verify token
   const verified = speakeasy.totp.verify({
-    secret: user.twoFA.secret,
+    secret: dbUser.twoFA.secret,
     encoding: "base32",
     token,
     window: 2, // Allow 2 time steps before/after
@@ -42,7 +42,7 @@ export async function POST(request) {
   if (!verified) {
     // Log failed attempt
     await AuditLog.create({
-      user: user._id,
+      user: dbUser._id,
       action: "2fa_failed",
       status: "failure",
       ip: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip"),
@@ -58,10 +58,10 @@ export async function POST(request) {
   );
 
   // Enable 2FA
-  user.twoFA.enabled = true;
-  user.twoFA.backupCodes = backupCodes;
-  user.twoFA.verifiedAt = new Date();
-  await user.save();
+  dbUser.twoFA.enabled = true;
+  dbUser.twoFA.backupCodes = backupCodes;
+  dbUser.twoFA.verifiedAt = new Date();
+  await dbUser.save();
 
   // Log successful enablement
   await AuditLog.create({
