@@ -27,7 +27,7 @@ function StatusBadge({ status }) {
   return <span className={`px-2 py-0.5 rounded text-xs ${colors[status] || colors.todo}`}>{status.replace("_", " ")}</span>;
 }
 
-export default function TasksView({ initialTasks, projects, users, filters }) {
+export default function TasksView({ initialTasks, projects, users, taskTypes = [], filters }) {
   const router = useRouter();
   const [selectedTask, setSelectedTask] = useState(null);
   const [selected, setSelected] = useState([]);
@@ -93,7 +93,7 @@ export default function TasksView({ initialTasks, projects, users, filters }) {
 
   return (
     <div className="space-y-4">
-      <TaskFilters filters={filters} projects={projects} users={users} />
+      <TaskFilters filters={filters} projects={projects} users={users} taskTypes={taskTypes} />
 
       {selected.length > 0 && (
         <div className="flex items-center gap-3 p-3 bg-neutral-900 rounded border border-neutral-800">
@@ -209,7 +209,7 @@ export default function TasksView({ initialTasks, projects, users, filters }) {
   );
 }
 
-function TaskFilters({ filters, projects, users }) {
+function TaskFilters({ filters, projects, users, taskTypes = [] }) {
   const router = useRouter();
 
   function updateFilter(key, value) {
@@ -246,13 +246,21 @@ function TaskFilters({ filters, projects, users }) {
         </select>
         <select defaultValue={filters.taskType || ""} onChange={(e) => updateFilter("taskType", e.target.value)} className="px-3 py-2 rounded bg-neutral-900 border border-neutral-800">
           <option value="">All Types</option>
-          <option value="task">Task</option>
-          <option value="bug">Bug</option>
-          <option value="feature">Feature</option>
-          <option value="meeting">Meeting</option>
-          <option value="idea">Idea</option>
-          <option value="review">Review</option>
-          <option value="research">Research</option>
+          {Array.isArray(taskTypes) && taskTypes.length > 0 ? (
+            taskTypes.map((t) => (
+              <option key={t.name} value={t.name}>{t.label || t.name}</option>
+            ))
+          ) : (
+            <>
+              <option value="task">Task</option>
+              <option value="bug">Bug</option>
+              <option value="feature">Feature</option>
+              <option value="meeting">Meeting</option>
+              <option value="idea">Idea</option>
+              <option value="review">Review</option>
+              <option value="research">Research</option>
+            </>
+          )}
         </select>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

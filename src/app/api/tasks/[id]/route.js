@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import connectToDatabase from "@/lib/db/mongodb";
 import Task from "@/models/Task";
+import TaskType from "@/models/TaskType";
 import { requireRoles } from "@/lib/auth/guard";
 
 function badId() {
@@ -28,7 +29,7 @@ export async function PATCH(req, { params }) {
     if (requestedStatus === "completed" && !body.completedAt) update.completedAt = new Date();
   }
   if (body.priority) update.priority = body.priority;
-  if (body.taskType) update.taskType = body.taskType;
+  if (body.taskType) update.taskType = body.taskType.trim().toLowerCase();
   if (body.dueDate) update.dueDate = new Date(body.dueDate);
   if (typeof body.estimatedHours === "number") update.estimatedHours = body.estimatedHours;
   if (typeof body.actualHours === "number") update.actualHours = body.actualHours;
@@ -40,6 +41,11 @@ export async function PATCH(req, { params }) {
   if (body.recurring) update.recurring = body.recurring;
   
   await connectToDatabase();
+  // Validate dynamic task type if provided
+  if (update.taskType) {
+    const existsType = await TaskType.findOne({ name: update.taskType, archived: { $ne: true } }).lean();
+    if (!existsType) return NextResponse.json({ error: true, message: "Invalid task type" }, { status: 400 });
+  }
   // Enforce dependency blocking for forward-moving statuses
   if (requestedStatus && ["in_progress", "review", "completed"].includes(requestedStatus)) {
     const current = await Task.findById(id).select("dependencies status").lean();

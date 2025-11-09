@@ -21,7 +21,6 @@ const TaskSchema = new mongoose.Schema(
     },
     taskType: {
       type: String,
-      enum: ["task", "bug", "feature", "meeting", "idea", "review", "research"],
       default: "task",
       index: true,
     },

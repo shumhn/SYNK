@@ -5,6 +5,7 @@ import Task from "@/models/Task";
 import Phase from "@/models/Phase";
 import Objective from "@/models/Objective";
 import Department from "@/models/Department";
+import TaskType from "@/models/TaskType";
 import User from "@/models/User";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -38,13 +39,14 @@ export default async function ProjectDetailPage({ params, searchParams }) {
   
   if (!project) return notFound();
   
-  const [milestones, tasks, allDepartments, allUsers, phases, objectives] = await Promise.all([
+  const [milestones, tasks, allDepartments, allUsers, phases, objectives, taskTypes] = await Promise.all([
     Milestone.find({ project: id }).sort({ order: 1 }).lean(),
     Task.find({ project: id }).populate("assignee", "username email").populate("milestone", "title").lean(),
     Department.find({ archived: false }).select("name").sort({ name: 1 }).lean(),
     User.find({ roles: { $exists: true, $ne: [] } }).select("username email roles").sort({ username: 1 }).lean(),
     Phase.find({ project: id }).sort({ order: 1, createdAt: 1 }).lean(),
     Objective.find({ project: id }).sort({ order: 1, createdAt: 1 }).lean(),
+    TaskType.find({ archived: { $ne: true } }).select("name label color").sort({ label: 1 }).lean(),
   ]);
   
   return (
@@ -71,6 +73,7 @@ export default async function ProjectDetailPage({ params, searchParams }) {
         tasks={JSON.parse(JSON.stringify(tasks))}
         allDepartments={JSON.parse(JSON.stringify(allDepartments))}
         allUsers={JSON.parse(JSON.stringify(allUsers))}
+        taskTypes={JSON.parse(JSON.stringify(taskTypes))}
       />
     </div>
   );

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import connectToDatabase from "@/lib/db/mongodb";
 import TaskComment from "@/models/TaskComment";
+import Task from "@/models/Task";
+import Notification from "@/models/Notification";
 import { requireRoles } from "@/lib/auth/guard";
 
 export async function GET(req, { params }) {
@@ -51,6 +53,29 @@ export async function POST(req, { params }) {
     .populate("author", "username email image")
     .populate("mentions", "username email")
     .lean();
+  
+  // Create notifications for mentioned users (best-effort)
+  try {
+    const uniqueMentionIds = Array.from(new Set((mentions || []).map((m) => m.toString()))).filter((uid) => uid !== auth.user._id.toString());
+    if (uniqueMentionIds.length > 0) {
+      const taskDoc = await Task.findById(id).select("title project").lean();
+      const title = "You were mentioned in a task comment";
+      const message = (content || "").slice(0, 140);
+      const payload = uniqueMentionIds.map((uid) => ({
+        user: uid,
+        type: "mention",
+        title,
+        message,
+        actor: auth.user._id,
+        refType: "TaskComment",
+        refId: created._id,
+        metadata: { taskId: id, taskTitle: taskDoc?.title, projectId: taskDoc?.project },
+      }));
+      await Notification.insertMany(payload);
+    }
+  } catch (e) {
+    // ignore notification errors to avoid blocking comment creation
+  }
   
   return NextResponse.json({ error: false, data: populated }, { status: 201 });
 }

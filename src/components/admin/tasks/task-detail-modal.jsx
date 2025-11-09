@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ProjectChat from "@/components/chat/project-chat";
 import { useRouter } from "next/navigation";
 
@@ -10,8 +10,10 @@ export default function TaskDetailModal({ task, onClose }) {
   const [subtasks, setSubtasks] = useState([]);
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
+  const [commentMentions, setCommentMentions] = useState([]);
   const [commentFile, setCommentFile] = useState({ filename: "", url: "" });
   const [checklist, setChecklist] = useState(task.checklist || []);
+  const [newChecklistText, setNewChecklistText] = useState("");
   const [newSubtask, setNewSubtask] = useState({ title: "", assignee: "", estimatedHours: 0 });
   const [projectTasks, setProjectTasks] = useState([]);
   const [dependencies, setDependencies] = useState(task.dependencies || []);
@@ -19,6 +21,10 @@ export default function TaskDetailModal({ task, onClose }) {
   const [newAttachment, setNewAttachment] = useState({ filename: "", url: "" });
   const [recurring, setRecurring] = useState(task.recurring || { enabled: false, frequency: "weekly", interval: 1, endDate: "" });
   const [users, setUsers] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+  const [commentUploading, setCommentUploading] = useState(false);
+  const commentFileInputRef = useRef(null);
 
   useEffect(() => {
     loadSubtasks();
@@ -33,6 +39,70 @@ export default function TaskDetailModal({ task, onClose }) {
       const data = await res.json();
       if (!data.error) setSubtasks(data.data);
     } catch (e) {}
+  }
+
+  async function onUploadCommentFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCommentUploading(true);
+    try {
+      const sigRes = await fetch(`/api/uploads/cloudinary/sign`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ folder: `tasks/${task._id}/comments`, uploadPreset: "zpb-uploads" }),
+      });
+      const sig = await sigRes.json();
+      if (!sigRes.ok || sig.error) {
+        alert(sig.message || "Failed to get upload signature");
+        return;
+      }
+      const { cloudName, apiKey, timestamp, signature, folder, uploadPreset } = sig.data;
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("api_key", apiKey);
+      fd.append("timestamp", String(timestamp));
+      if (folder) fd.append("folder", folder);
+      if (uploadPreset) fd.append("upload_preset", uploadPreset);
+      fd.append("signature", signature);
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, { method: "POST", body: fd });
+      const up = await uploadRes.json();
+      if (!uploadRes.ok || up.error) {
+        alert(up.error?.message || "Upload failed");
+        return;
+      }
+      setCommentFile({ filename: up.original_filename || file.name, url: up.secure_url });
+      if (commentFileInputRef.current) commentFileInputRef.current.value = "";
+    } catch (e) {
+      alert("Unexpected upload error");
+    } finally {
+      setCommentUploading(false);
+    }
+  }
+
+  async function addChecklistItem(e) {
+    e.preventDefault();
+    const text = newChecklistText.trim();
+    if (!text) return;
+    const updated = [...checklist, { text, completed: false, order: checklist.length }];
+    setChecklist(updated);
+    await fetch(`/api/tasks/${task._id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ checklist: updated }),
+    });
+    setNewChecklistText("");
+    router.refresh();
+  }
+
+  async function removeChecklistItem(i) {
+    const updated = checklist.filter((_, idx) => idx !== i).map((c, idx) => ({ ...c, order: idx }));
+    setChecklist(updated);
+    await fetch(`/api/tasks/${task._id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ checklist: updated }),
+    });
+    router.refresh();
   }
 
   async function loadUsers() {
@@ -70,6 +140,7 @@ export default function TaskDetailModal({ task, onClose }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           content: commentText,
+          mentions: commentMentions,
           attachments: commentFile.filename && commentFile.url ? [{ filename: commentFile.filename, url: commentFile.url }] : [],
         }),
       });
@@ -77,6 +148,7 @@ export default function TaskDetailModal({ task, onClose }) {
       if (!data.error) {
         setComments([...comments, data.data]);
         setCommentText("");
+        setCommentMentions([]);
         setCommentFile({ filename: "", url: "" });
       }
     } catch (e) {}
@@ -128,6 +200,54 @@ export default function TaskDetailModal({ task, onClose }) {
     });
     setNewAttachment({ filename: "", url: "" });
     router.refresh();
+  }
+
+  async function onUploadAttachmentChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const sigRes = await fetch(`/api/uploads/cloudinary/sign`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ folder: `tasks/${task._id}`, uploadPreset: "zpb-uploads" }),
+      });
+      const sig = await sigRes.json();
+      if (!sigRes.ok || sig.error) {
+        alert(sig.message || "Failed to get upload signature");
+        return;
+      }
+      const { cloudName, apiKey, timestamp, signature, folder, uploadPreset } = sig.data;
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("api_key", apiKey);
+      fd.append("timestamp", String(timestamp));
+      if (folder) fd.append("folder", folder);
+      if (uploadPreset) fd.append("upload_preset", uploadPreset);
+      fd.append("signature", signature);
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, { method: "POST", body: fd });
+      const up = await uploadRes.json();
+      if (!uploadRes.ok || up.error) {
+        alert(up.error?.message || "Upload failed");
+        return;
+      }
+      const next = [
+        ...attachments,
+        { filename: up.original_filename || file.name, url: up.secure_url },
+      ];
+      setAttachments(next);
+      await fetch(`/api/tasks/${task._id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ attachments: next }),
+      });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      router.refresh();
+    } catch (e) {
+      alert("Unexpected upload error");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function saveRecurring(e) {
@@ -261,6 +381,13 @@ export default function TaskDetailModal({ task, onClose }) {
                       <div className="text-sm font-medium">{c.author?.username || "Unknown"}</div>
                       <div className="text-sm text-gray-300 mt-1">{c.content}</div>
                       <div className="text-xs text-gray-500 mt-1">{new Date(c.createdAt).toLocaleString()}</div>
+                      {Array.isArray(c.mentions) && c.mentions.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {c.mentions.map((m)=> (
+                            <span key={m._id || m} className="text-xs px-2 py-0.5 rounded bg-neutral-800">@{m.username || m}</span>
+                          ))}
+                        </div>
+                      )}
                       {Array.isArray(c.attachments) && c.attachments.length > 0 && (
                         <div className="mt-2 space-y-2">
                           {c.attachments.map((a, i) => {
@@ -294,6 +421,20 @@ export default function TaskDetailModal({ task, onClose }) {
                   />
                   <button className="bg-white text-black px-4 py-2 rounded">Post</button>
                 </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Mentions</label>
+                  <select
+                    multiple
+                    value={commentMentions}
+                    onChange={(e)=>setCommentMentions(Array.from(e.target.selectedOptions).map(o=>o.value))}
+                    className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 h-24"
+                  >
+                    {users.map((u)=> (
+                      <option key={u._id} value={u._id}>@{u.username}</option>
+                    ))}
+                  </select>
+                  <div className="text-xs text-gray-500 mt-1">Hold Cmd/Ctrl to select multiple users to notify.</div>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     value={commentFile.filename}
@@ -308,23 +449,42 @@ export default function TaskDetailModal({ task, onClose }) {
                     className="px-3 py-2 rounded bg-neutral-800 border border-neutral-700"
                   />
                 </div>
+                <div className="flex items-center gap-3">
+                  <input ref={commentFileInputRef} type="file" className="hidden" onChange={onUploadCommentFileChange} />
+                  <button type="button" onClick={()=>commentFileInputRef.current?.click()} disabled={commentUploading} className="px-3 py-2 rounded border border-neutral-700 hover:bg-neutral-900 text-sm">
+                    {commentUploading ? "Uploading..." : "Upload file for comment"}
+                  </button>
+                  {commentFile.url && (
+                    <span className="text-xs text-gray-400">Ready: {commentFile.filename}</span>
+                  )}
+                </div>
                 <div className="text-xs text-gray-500">Add an optional attachment by providing filename and URL. Images will preview.</div>
               </form>
             </div>
           )}
 
           {activeTab === "checklist" && (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              <form onSubmit={addChecklistItem} className="flex items-end gap-2 p-3 rounded border border-neutral-800">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-400 mb-1">New item</label>
+                  <input value={newChecklistText} onChange={(e)=>setNewChecklistText(e.target.value)} className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700" placeholder="Describe the step" />
+                </div>
+                <button className="bg-white text-black px-3 py-2 rounded">Add</button>
+              </form>
               {checklist.length > 0 ? (
                 checklist.map((item, i) => (
-                  <label key={i} className="flex items-center gap-3 p-2 rounded hover:bg-neutral-800 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={item.completed}
-                      onChange={() => toggleChecklistItem(i)}
-                    />
-                    <span className={`text-sm ${item.completed ? "line-through text-gray-500" : ""}`}>{item.text}</span>
-                  </label>
+                  <div key={i} className="flex items-center justify-between p-2 rounded border border-neutral-800">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={item.completed}
+                        onChange={() => toggleChecklistItem(i)}
+                      />
+                      <span className={`text-sm ${item.completed ? "line-through text-gray-500" : ""}`}>{item.text}</span>
+                    </label>
+                    <button onClick={() => removeChecklistItem(i)} className="text-xs text-red-400 underline">Remove</button>
+                  </div>
                 ))
               ) : (
                 <div className="p-8 text-center text-gray-400">No checklist items.</div>
@@ -350,6 +510,13 @@ export default function TaskDetailModal({ task, onClose }) {
                 </div>
                 <button className="bg-white text-black px-3 py-2 rounded">Add</button>
               </form>
+              <div className="flex items-center gap-3">
+                <input ref={fileInputRef} type="file" className="hidden" onChange={onUploadAttachmentChange} />
+                <button type="button" onClick={()=>fileInputRef.current?.click()} disabled={uploading} className="bg-white text-black px-3 py-2 rounded">
+                  {uploading ? "Uploading..." : "Upload File"}
+                </button>
+                <span className="text-xs text-gray-500">Uploads are stored in Cloudinary and added as task attachments.</span>
+              </div>
               {task.attachments?.length > 0 ? (
                 attachments.map((a, i) => {
                   const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(a.url || "");

@@ -12,7 +12,7 @@ import TemplateTaskModal from "./template-task-modal";
 import ProjectDependencies from "./project-dependencies";
 import ProjectChat from "@/components/chat/project-chat";
 
-export default function ProjectTabs({ tab, project, milestones, phases, objectives, tasks, allDepartments, allUsers }) {
+export default function ProjectTabs({ tab, project, milestones, phases, objectives, tasks, allDepartments, allUsers, taskTypes = [] }) {
   const router = useRouter();
   const tabs = [
     "overview",
@@ -59,7 +59,7 @@ export default function ProjectTabs({ tab, project, milestones, phases, objectiv
           <ObjectivesTab project={project} phases={phases} objectives={objectives} allUsers={allUsers} />
         )}
         {tab === "tasks" && (
-          <TasksTab project={project} tasks={tasks} milestones={milestones} allUsers={allUsers} />
+          <TasksTab project={project} tasks={tasks} milestones={milestones} allUsers={allUsers} taskTypes={taskTypes} />
         )}
         {tab === "dependencies" && <ProjectDependencies projectId={project._id} />}
         {tab === "budget" && <BudgetTab project={project} />}
@@ -271,7 +271,7 @@ function MilestonesTab({ project, milestones }) {
   );
 }
 
-function TasksTab({ project, tasks, milestones, allUsers }) {
+function TasksTab({ project, tasks, milestones, allUsers, taskTypes = [] }) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -337,6 +337,7 @@ function TasksTab({ project, tasks, milestones, allUsers }) {
           task={editing}
           milestones={milestones}
           users={allUsers}
+          taskTypes={taskTypes}
           onClose={() => { setShowModal(false); setEditing(null); }}
           onSave={onSave}
         />

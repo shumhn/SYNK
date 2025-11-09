@@ -14,9 +14,21 @@ function addInterval(date, frequency, interval) {
   return d;
 }
 
-export async function POST() {
-  const auth = await requireRoles(["admin", "hr", "manager"]);
-  if (!auth.ok) return NextResponse.json({ error: true, message: auth.error }, { status: auth.status });
+export async function POST(req) {
+  // Cron secret bypass (header or query): x-cron-secret or ?secret=
+  let bypass = false;
+  try {
+    const headerSecret = req.headers.get("x-cron-secret");
+    const urlSecret = new URL(req.url).searchParams.get("secret");
+    const expected = process.env.CRON_SECRET;
+    if (expected && (headerSecret === expected || urlSecret === expected)) {
+      bypass = true;
+    }
+  } catch {}
+  if (!bypass) {
+    const auth = await requireRoles(["admin", "hr", "manager"]);
+    if (!auth.ok) return NextResponse.json({ error: true, message: auth.error }, { status: auth.status });
+  }
 
   await connectToDatabase();
 

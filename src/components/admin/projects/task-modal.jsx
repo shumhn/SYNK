@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export default function TaskModal({ projectId, task, milestones = [], users = [], onClose, onSave }) {
+export default function TaskModal({ projectId, task, milestones = [], users = [], taskTypes = [], onClose, onSave }) {
   const [form, setForm] = useState({
     title: task?.title || "",
     description: task?.description || "",
@@ -102,6 +102,20 @@ export default function TaskModal({ projectId, task, milestones = [], users = []
               </select>
             </div>
           </div>
+          <div>
+            <label className="block text-sm mb-1">Additional Assignees (multi-select)</label>
+            <select
+              multiple
+              value={form.assignees}
+              onChange={(e) => setForm({ ...form, assignees: Array.from(e.target.selectedOptions).map((o) => o.value) })}
+              className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 h-28"
+            >
+              {users.map((u) => (
+                <option key={u._id} value={u._id}>{u.username}</option>
+              ))}
+            </select>
+            <div className="text-xs text-gray-500 mt-1">Hold Cmd/Ctrl to select multiple.</div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm mb-1">Status</label>
@@ -139,13 +153,21 @@ export default function TaskModal({ projectId, task, milestones = [], users = []
               onChange={(e) => setForm({ ...form, taskType: e.target.value })}
               className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700"
             >
-              <option value="task">Task</option>
-              <option value="bug">Bug</option>
-              <option value="feature">Feature</option>
-              <option value="meeting">Meeting</option>
-              <option value="idea">Idea</option>
-              <option value="review">Review</option>
-              <option value="research">Research</option>
+              {Array.isArray(taskTypes) && taskTypes.length > 0 ? (
+                taskTypes.map((t) => (
+                  <option key={t.name} value={t.name}>{t.label || t.name}</option>
+                ))
+              ) : (
+                <>
+                  <option value="task">Task</option>
+                  <option value="bug">Bug</option>
+                  <option value="feature">Feature</option>
+                  <option value="meeting">Meeting</option>
+                  <option value="idea">Idea</option>
+                  <option value="review">Review</option>
+                  <option value="research">Research</option>
+                </>
+              )}
             </select>
           </div>
           <div>
