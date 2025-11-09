@@ -4,6 +4,8 @@ import connectToDatabase from "@/lib/db/mongodb";
 import Project from "@/models/Project";
 import Task from "@/models/Task";
 import Milestone from "@/models/Milestone";
+import Department from "@/models/Department";
+import User from "@/models/User";
 import { requireRoles } from "@/lib/auth/guard";
 
 function badId() {
@@ -64,6 +66,34 @@ export async function PATCH(req, { params }) {
   if (Array.isArray(body.resources)) update.resources = body.resources;
   
   await connectToDatabase();
+  // Validate departments exist and are not archived
+  if (Array.isArray(update.departments)) {
+    const depDocs = await Department.find({ _id: { $in: update.departments }, archived: false }).select("_id").lean();
+    if (depDocs.length !== update.departments.length) {
+      return NextResponse.json({ error: true, message: "One or more departments are invalid or archived" }, { status: 400 });
+    }
+  }
+  // Validate managers have privileged roles
+  if (Array.isArray(update.managers)) {
+    const mgrDocs = await User.find({ _id: { $in: update.managers }, roles: { $in: ["admin", "hr", "manager"] } }).select("_id").lean();
+    if (mgrDocs.length !== update.managers.length) {
+      return NextResponse.json({ error: true, message: "One or more managers are invalid or not allowed" }, { status: 400 });
+    }
+  }
+  // Validate members are approved (non-empty roles)
+  if (Array.isArray(update.members)) {
+    const memDocs = await User.find({ _id: { $in: update.members }, roles: { $exists: true, $ne: [] } }).select("_id").lean();
+    if (memDocs.length !== update.members.length) {
+      return NextResponse.json({ error: true, message: "One or more members are invalid or not approved" }, { status: 400 });
+    }
+  }
+  // Ensure all managers are also members
+  if (Array.isArray(update.managers)) {
+    const currentMembers = Array.isArray(update.members) ? update.members : [];
+    const membersSet = new Set([...(currentMembers || []), ...update.managers]);
+    update.members = Array.from(membersSet);
+  }
+
   const updated = await Project.findByIdAndUpdate(id, update, { new: true })
     .populate("departments", "name")
     .populate("managers", "username email")

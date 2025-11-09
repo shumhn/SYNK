@@ -32,6 +32,7 @@ export async function POST(req) {
             username,
             email,
             password, // This will be hashed by the pre-save hook in User.js
+            roles: [], // mark as pending until an admin approves/assigns roles
         });
 
         return NextResponse.json(

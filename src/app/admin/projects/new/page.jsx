@@ -5,10 +5,13 @@ import CreateProjectForm from "@/components/admin/projects/create-project-form";
 
 export default async function NewProjectPage() {
   await connectToDatabase();
-  const [departments, users] = await Promise.all([
+  const [rawDepartments, rawUsers] = await Promise.all([
     Department.find({ archived: false }).select("name").sort({ name: 1 }).lean(),
-    User.find().select("username email roles").sort({ username: 1 }).lean(),
+    User.find({ roles: { $exists: true, $ne: [] } }).select("username email roles").sort({ username: 1 }).lean(),
   ]);
+
+  const departments = rawDepartments.map((d) => ({ _id: d._id.toString(), name: d.name }));
+  const users = rawUsers.map((u) => ({ _id: u._id.toString(), username: u.username, email: u.email, roles: u.roles || [] }));
 
   return (
     <div className="space-y-6">
