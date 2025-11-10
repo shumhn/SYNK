@@ -49,6 +49,7 @@ export default function AdminNavbar() {
     <div className="w-full border-b border-neutral-800/50 bg-[#0A0A0A] backdrop-blur-lg">
       <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-1">
+          <Link href="/admin/dashboard" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/dashboard") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Dashboard</Link>
           <Link href="/admin/users" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/users") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Users</Link>
           <Link href="/admin/departments" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/departments") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Departments</Link>
           <Link href="/admin/teams" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/teams") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Teams</Link>
