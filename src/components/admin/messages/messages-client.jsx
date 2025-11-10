@@ -5,12 +5,28 @@ import ChannelList from "./channel-list";
 import MessageThread from "./message-thread";
 import NewChannelModal from "./new-channel-modal";
 
-export default function MessagesClient({ currentUser }) {
+export default function MessagesClient() {
   const [channels, setChannels] = useState([]);
   const [selectedChannelId, setSelectedChannelId] = useState(null);
   const [showNewChannelModal, setShowNewChannelModal] = useState(false);
   const [channelType, setChannelType] = useState("all"); // all, private, group
   const [loadingChannels, setLoadingChannels] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    async function loadCurrentUser() {
+      try {
+        const res = await fetch("/api/auth/me");
+        const data = await res.json();
+        if (!data.error) {
+          setCurrentUser(data.data);
+        }
+      } catch (e) {
+        console.error("Failed to load current user", e);
+      }
+    }
+    loadCurrentUser();
+  }, []);
 
   const selectedChannel = useMemo(() => {
     if (!selectedChannelId) return null;
