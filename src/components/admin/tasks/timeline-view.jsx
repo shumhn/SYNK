@@ -8,6 +8,7 @@ export default function TimelineView({ tasks, onTaskClick }) {
   const [zoom, setZoom] = useState("week"); // 'day', 'week', 'month'
   const [groupBy, setGroupBy] = useState("project"); // 'project', 'assignee', 'none'
   const [showDependencies, setShowDependencies] = useState(true);
+  const [showCriticalPath, setShowCriticalPath] = useState(false);
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragStartX, setDragStartX] = useState(0);
   const [dragType, setDragType] = useState(null); // 'move', 'resize-start', 'resize-end'
@@ -21,6 +22,74 @@ export default function TimelineView({ tasks, onTaskClick }) {
       endDate: t.dueDate ? new Date(t.dueDate) : (t.startDate ? new Date(new Date(t.startDate).getTime() + 7 * 24 * 60 * 60 * 1000) : new Date(t.createdAt)),
     }));
   }, [tasks]);
+
+  // Compute Critical Path (longest path by duration respecting dependencies)
+  const { criticalTaskIds, criticalEdges } = useMemo(() => {
+    const result = { criticalTaskIds: new Set(), criticalEdges: new Set() };
+    if (!Array.isArray(tasksWithDates) || tasksWithDates.length === 0) return result;
+
+    const byId = new Map();
+    tasksWithDates.forEach(t => byId.set(t._id?.toString(), t));
+    const preds = new Map();
+    tasksWithDates.forEach(t => {
+      const id = t._id?.toString();
+      const arr = (t.dependencies || [])
+        .map(d => (typeof d === "object" && d?._id ? d._id : d)?.toString())
+        .filter(did => byId.has(did));
+      preds.set(id, arr);
+    });
+
+    const memo = new Map();
+    const parent = new Map();
+    const visiting = new Set();
+
+    function durationMs(task) { return Math.max(0, (task.endDate?.getTime?.() || 0) - (task.startDate?.getTime?.() || 0)); }
+
+    function dfs(id) {
+      if (memo.has(id)) return memo.get(id);
+      if (visiting.has(id)) {
+        // cycle detected; treat as zero predecessors
+        return durationMs(byId.get(id));
+      }
+      visiting.add(id);
+      let best = 0;
+      let bestPred = null;
+      const p = preds.get(id) || [];
+      for (const pid of p) {
+        const d = dfs(pid);
+        if (d > best) { best = d; bestPred = pid; }
+      }
+      visiting.delete(id);
+      const val = best + durationMs(byId.get(id));
+      memo.set(id, val);
+      if (bestPred) parent.set(id, bestPred);
+      return val;
+    }
+
+    let endId = null;
+    let maxDist = -1;
+    for (const id of byId.keys()) {
+      const d = dfs(id);
+      if (d > maxDist) { maxDist = d; endId = id; }
+    }
+
+    // Reconstruct path
+    const pathIds = [];
+    const edgeSet = new Set();
+    let cur = endId;
+    const guard = new Set();
+    while (cur && !guard.has(cur)) {
+      guard.add(cur);
+      pathIds.push(cur);
+      const p = parent.get(cur);
+      if (p) edgeSet.add(`${p}->${cur}`);
+      cur = p;
+    }
+
+    result.criticalTaskIds = new Set(pathIds);
+    result.criticalEdges = edgeSet;
+    return result;
+  }, [tasksWithDates]);
 
   // Calculate timeline range
   const { minDate, maxDate, today } = useMemo(() => {
@@ -289,6 +358,16 @@ export default function TimelineView({ tasks, onTaskClick }) {
         >
           {showDependencies ? "🔗" : "○"} Dependencies
         </button>
+        <button
+          onClick={() => setShowCriticalPath(!showCriticalPath)}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+            showCriticalPath
+              ? "bg-red-500/10 text-red-400 border-red-500/30"
+              : "bg-neutral-900 text-gray-400 border-neutral-800"
+          }`}
+        >
+          {showCriticalPath ? "🔥" : "○"} Critical Path
+        </button>
       </div>
 
       {/* Timeline Container */}
@@ -378,7 +457,7 @@ export default function TimelineView({ tasks, onTaskClick }) {
                       <div
                         className={`absolute top-1/2 -translate-y-1/2 h-8 rounded-lg border-2 cursor-move transition-all ${getStatusColor(task.status)} ${
                           overdue ? "animate-pulse border-red-400" : ""
-                        } ${draggedTask?._id === task._id ? "opacity-50 scale-95" : "hover:brightness-110 hover:scale-105 group-hover:shadow-lg"}`}
+                        } ${showCriticalPath && criticalTaskIds.has(task._id?.toString()) ? "ring-2 ring-red-400" : ""} ${draggedTask?._id === task._id ? "opacity-50 scale-95" : "hover:brightness-110 hover:scale-105 group-hover:shadow-lg"}`}
                         style={{
                           left: `${left}px`,
                           width: `${width}px`,
@@ -430,9 +509,9 @@ export default function TimelineView({ tasks, onTaskClick }) {
                                 y1="50%"
                                 x2={taskPos.left}
                                 y2="50%"
-                                stroke="#60a5fa"
-                                strokeWidth="2"
-                                strokeDasharray="4 2"
+                                stroke={showCriticalPath && criticalEdges.has(`${depTask._id?.toString()}->${task._id?.toString()}`) ? "#ef4444" : "#60a5fa"}
+                                strokeWidth={showCriticalPath && criticalEdges.has(`${depTask._id?.toString()}->${task._id?.toString()}`) ? 3 : 2}
+                                strokeDasharray={showCriticalPath && criticalEdges.has(`${depTask._id?.toString()}->${task._id?.toString()}`) ? "" : "4 2"}
                                 markerEnd="url(#arrowhead)"
                               />
                             );
@@ -505,6 +584,7 @@ export default function TimelineView({ tasks, onTaskClick }) {
         <div className="flex items-center gap-4 text-gray-500">
           <span>⚠️ = Overdue</span>
           <span>🔗 = Dependencies</span>
+          <span className="text-red-400">🔥 = Critical Path</span>
           <span className="text-blue-500">| = Today</span>
         </div>
       </div>

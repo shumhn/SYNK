@@ -202,8 +202,16 @@ function TaskCard({ task, onDragStart, onTaskClick, isDragging }) {
   );
 }
 
-function KanbanColumn({ status, tasks, onDrop, onDragOver, onTaskClick, isDragOver, draggedTask, wipLimit }) {
-  const count = tasks.length;
+function KanbanColumn({ status, tasks, onDrop, onDragOver, onTaskClick, isDragOver, draggedTask, wipLimit, onCardDragStart, dropIndex, onItemDragOver }) {
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aOrder = typeof a.boardOrder === "number" ? a.boardOrder : 0;
+    const bOrder = typeof b.boardOrder === "number" ? b.boardOrder : 0;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    const ad = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bd = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return ad - bd;
+  });
+  const count = sortedTasks.length;
   const [isCollapsed, setIsCollapsed] = useState(false);
   const isOverLimit = wipLimit > 0 && count > wipLimit;
   const isNearLimit = wipLimit > 0 && count === wipLimit;
@@ -275,18 +283,33 @@ function KanbanColumn({ status, tasks, onDrop, onDragOver, onTaskClick, isDragOv
           ${isDragOver ? "bg-neutral-800/20" : ""}
         `}
         style={{ maxHeight: "calc(100vh - 300px)", minHeight: "400px" }}
+        onDragOver={(e) => {
+          // When dragging over empty space in the column, set dropIndex to end
+          if (isDragOver) onItemDragOver(count, status.id);
+        }}
         >
-          {tasks.length > 0 ? (
+          {sortedTasks.length > 0 ? (
             <div className="space-y-2">
-              {tasks.map((task) => (
-                <TaskCard
-                  key={task._id}
-                  task={task}
-                  onDragStart={(e, t) => e.dataTransfer.setData("taskId", t._id)}
-                  onTaskClick={onTaskClick}
-                  isDragging={draggedTask?._id === task._id}
-                />
+              {sortedTasks.map((task, index) => (
+                <div key={task._id}
+                     onDragOver={(e) => { e.preventDefault(); onItemDragOver(index, status.id); }}
+                     className="relative">
+                  {/* Drop indicator before this card */}
+                  {isDragOver && dropIndex === index && (
+                    <div className="absolute -top-1 left-0 right-0 h-1 bg-blue-500/70 rounded" />
+                  )}
+                  <TaskCard
+                    task={task}
+                    onDragStart={(e, t) => { onCardDragStart(e, t); e.dataTransfer.setData("taskId", t._id); }}
+                    onTaskClick={onTaskClick}
+                    isDragging={draggedTask?._id === task._id}
+                  />
+                </div>
               ))}
+              {/* Drop indicator at end */}
+              {isDragOver && dropIndex === count && (
+                <div className="h-1 bg-blue-500/70 rounded" />
+              )}
             </div>
           ) : (
             <div className={`
@@ -316,6 +339,7 @@ export default function KanbanBoard({ tasks, onTaskClick, onTaskUpdate }) {
   const [dragOverColumn, setDragOverColumn] = useState(null);
   const [swimlaneBy, setSwimlaneBy] = useState("none"); // 'none', 'assignee', 'project'
   const [wipLimits] = useState({ todo: 10, in_progress: 5, review: 5, completed: 0, blocked: 10 });
+  const [dropIndex, setDropIndex] = useState(null);
 
   function handleDragStart(e, task) {
     setDraggedTask(task);
@@ -332,28 +356,44 @@ export default function KanbanBoard({ tasks, onTaskClick, onTaskUpdate }) {
     setDragOverColumn(null);
   }
 
+  function handleItemDragOver(index, columnId) {
+    setDragOverColumn(columnId);
+    setDropIndex(index);
+  }
+
+  function sortByOrder(list) {
+    return [...list].sort((a, b) => {
+      const aOrder = typeof a.boardOrder === "number" ? a.boardOrder : 0;
+      const bOrder = typeof b.boardOrder === "number" ? b.boardOrder : 0;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      const ad = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bd = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return ad - bd;
+    });
+  }
+
   async function handleDrop(e, newStatus) {
     e.preventDefault();
+    const droppedIndex = dropIndex;
     setDragOverColumn(null);
+    setDropIndex(null);
     
-    if (!draggedTask || draggedTask.status === newStatus) {
-      setDraggedTask(null);
-      return;
-    }
+    if (!draggedTask) { setDraggedTask(null); return; }
 
-    // WIP limit check
-    const targetColumnTasks = tasksByStatus[newStatus] || [];
-    const wipLimit = wipLimits[newStatus];
-    if (wipLimit > 0 && targetColumnTasks.length >= wipLimit) {
-      const proceed = confirm(`⚠️ WIP Limit Warning\n\nColumn "${newStatus.replace("_", " ")}" has ${targetColumnTasks.length}/${wipLimit} tasks.\nProceed anyway?`);
-      if (!proceed) {
-        setDraggedTask(null);
-        return;
+    const statusChanged = draggedTask.status !== newStatus;
+
+    // WIP limit applies only when moving across columns
+    if (statusChanged) {
+      const targetColumnTasks = tasksByStatus[newStatus] || [];
+      const wipLimit = wipLimits[newStatus];
+      if (wipLimit > 0 && targetColumnTasks.length >= wipLimit) {
+        const proceed = confirm(`⚠️ WIP Limit Warning\n\nColumn "${newStatus.replace("_", " ")}" has ${targetColumnTasks.length}/${wipLimit} tasks.\nProceed anyway?`);
+        if (!proceed) { setDraggedTask(null); return; }
       }
     }
 
-    // Check if task is blocked and trying to move forward
-    if (["in_progress", "review", "completed"].includes(newStatus)) {
+    // Dependency forward-move enforcement only when moving to later statuses
+    if (statusChanged && ["in_progress", "review", "completed"].includes(newStatus)) {
       const incompleteDeps = draggedTask.dependencies?.filter(d => d?.status !== "completed").length || 0;
       if (incompleteDeps > 0) {
         alert(`❌ Cannot move to ${newStatus.replace("_", " ")}.\n\nTask has ${incompleteDeps} incomplete dependency(ies).\nComplete those tasks first.`);
@@ -362,11 +402,30 @@ export default function KanbanBoard({ tasks, onTaskClick, onTaskUpdate }) {
       }
     }
 
+    // Compute new boardOrder based on drop position in target column
+    const baseList = (tasksByStatus[newStatus] || []).filter(t => t._id !== draggedTask._id);
+    const ordered = sortByOrder(baseList);
+    const idx = typeof droppedIndex === "number" ? Math.min(Math.max(droppedIndex, 0), ordered.length) : ordered.length;
+    let newOrder = 0;
+    if (ordered.length === 0) {
+      newOrder = 0;
+    } else if (idx === 0) {
+      const first = typeof ordered[0].boardOrder === "number" ? ordered[0].boardOrder : 0;
+      newOrder = first - 1;
+    } else if (idx === ordered.length) {
+      const last = typeof ordered[ordered.length - 1].boardOrder === "number" ? ordered[ordered.length - 1].boardOrder : ordered.length - 1;
+      newOrder = last + 1;
+    } else {
+      const prev = typeof ordered[idx - 1].boardOrder === "number" ? ordered[idx - 1].boardOrder : idx - 1;
+      const next = typeof ordered[idx].boardOrder === "number" ? ordered[idx].boardOrder : idx;
+      newOrder = (prev + next) / 2;
+    }
+
     try {
       const res = await fetch(`/api/tasks/${draggedTask._id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ ...(statusChanged ? { status: newStatus } : {}), boardOrder: newOrder }),
       });
       
       const data = await res.json();
@@ -471,6 +530,9 @@ export default function KanbanBoard({ tasks, onTaskClick, onTaskUpdate }) {
             isDragOver={dragOverColumn === status.id}
             draggedTask={draggedTask}
             wipLimit={wipLimits[status.id]}
+            onCardDragStart={handleDragStart}
+            dropIndex={dragOverColumn === status.id ? dropIndex : null}
+            onItemDragOver={handleItemDragOver}
           />
         ))}
       </div>

@@ -10,9 +10,9 @@ export default function ChannelList({ channels, selectedChannel, onSelectChannel
     
     if (channel.type === "private") {
       // For private channels, search by other member's name
-      const otherMembers = channel.members.filter(m => m._id !== currentUserId);
+      const otherMembers = (channel.members || []).filter(m => (m?._id || m)?.toString() !== currentUserId);
       return otherMembers.some(m => 
-        m.username?.toLowerCase().includes(searchTerm.toLowerCase())
+        (m.username || "").toLowerCase().includes(searchTerm.toLowerCase())
       );
     } else {
       // For group channels, search by name
@@ -23,15 +23,15 @@ export default function ChannelList({ channels, selectedChannel, onSelectChannel
   function getChannelDisplayName(channel) {
     if (channel.type === "private") {
       // Show other member's name
-      const otherMembers = channel.members.filter(m => m._id !== currentUserId);
-      return otherMembers.map(m => m.username).join(", ") || "Private Chat";
+      const otherMembers = (channel.members || []).filter(m => (m?._id || m)?.toString() !== currentUserId);
+      return otherMembers.map(m => m.username || "Unknown").join(", ") || "Private Chat";
     }
     return channel.name || "Unnamed Group";
   }
 
   function getChannelAvatar(channel) {
     if (channel.type === "private") {
-      const otherMembers = channel.members.filter(m => m._id !== currentUserId);
+      const otherMembers = (channel.members || []).filter(m => (m?._id || m)?.toString() !== currentUserId);
       const member = otherMembers[0];
       if (member?.image) {
         return <img src={member.image} alt={member.username} className="w-8 h-8 rounded-full" />;
@@ -52,7 +52,15 @@ export default function ChannelList({ channels, selectedChannel, onSelectChannel
   }
 
   function getUnreadBadge(channel) {
-    const unread = channel.unreadCount?.get(currentUserId) || 0;
+    const unreadData = channel.unreadCount;
+    let unread = 0;
+    if (unreadData) {
+      if (typeof unreadData.get === "function") {
+        unread = unreadData.get(currentUserId) || 0;
+      } else if (typeof unreadData === "object") {
+        unread = unreadData[currentUserId] || 0;
+      }
+    }
     if (unread === 0) return null;
     
     return (
