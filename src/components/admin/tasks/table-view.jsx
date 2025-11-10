@@ -7,8 +7,15 @@ export default function TableView({ tasks, onTaskClick, projects, users }) {
   const router = useRouter();
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
+  const [sortBy, setSortBy] = useState("dueDate"); // field to sort by
+  const [sortOrder, setSortOrder] = useState("asc"); // 'asc' or 'desc'
+  const [filters, setFilters] = useState({ status: "", priority: "", assignee: "" });
+  const [savingCells, setSavingCells] = useState(new Set()); // optimistic UI
 
   async function handleCellUpdate(taskId, field, value) {
+    const cellKey = `${taskId}-${field}`;
+    setSavingCells(prev => new Set([...prev, cellKey]));
+    
     try {
       await fetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
@@ -20,6 +27,12 @@ export default function TableView({ tasks, onTaskClick, projects, users }) {
     } catch (e) {
       console.error("Failed to update task", e);
       alert("Failed to update task");
+    } finally {
+      setSavingCells(prev => {
+        const next = new Set(prev);
+        next.delete(cellKey);
+        return next;
+      });
     }
   }
 
@@ -55,6 +68,47 @@ export default function TableView({ tasks, onTaskClick, projects, users }) {
     return colors[priority] || colors.medium;
   };
 
+  // Filter and sort tasks
+  const filteredTasks = tasks.filter(task => {
+    if (filters.status && task.status !== filters.status) return false;
+    if (filters.priority && task.priority !== filters.priority) return false;
+    if (filters.assignee && task.assignee?._id !== filters.assignee) return false;
+    return true;
+  });
+
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    let aVal = a[sortBy];
+    let bVal = b[sortBy];
+    
+    // Handle nested objects
+    if (sortBy === "assignee") {
+      aVal = a.assignee?.username || "";
+      bVal = b.assignee?.username || "";
+    } else if (sortBy === "project") {
+      aVal = a.project?.title || "";
+      bVal = b.project?.title || "";
+    }
+    
+    // Handle dates
+    if (sortBy === "dueDate") {
+      aVal = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+      bVal = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+    }
+    
+    if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  function handleSort(field) {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Table Header */}
@@ -64,8 +118,57 @@ export default function TableView({ tasks, onTaskClick, projects, users }) {
           <p className="text-sm text-gray-400">Spreadsheet-like grid with editable cells</p>
         </div>
         <div className="text-sm text-gray-500">
-          {tasks.length} tasks
+          {sortedTasks.length} of {tasks.length} tasks
         </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3 p-3 bg-neutral-900/50 rounded-lg border border-neutral-800">
+        <span className="text-xs text-gray-400">Filters:</span>
+        <select
+          value={filters.status}
+          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+          className="px-3 py-1.5 rounded bg-neutral-800 border border-neutral-700 text-sm"
+        >
+          <option value="">All Statuses</option>
+          <option value="todo">To Do</option>
+          <option value="in_progress">In Progress</option>
+          <option value="review">Review</option>
+          <option value="completed">Completed</option>
+          <option value="blocked">Blocked</option>
+        </select>
+        <select
+          value={filters.priority}
+          onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+          className="px-3 py-1.5 rounded bg-neutral-800 border border-neutral-700 text-sm"
+        >
+          <option value="">All Priorities</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+          <option value="critical">Critical</option>
+        </select>
+        <select
+          value={filters.assignee}
+          onChange={(e) => setFilters({ ...filters, assignee: e.target.value })}
+          className="px-3 py-1.5 rounded bg-neutral-800 border border-neutral-700 text-sm"
+        >
+          <option value="">All Assignees</option>
+          {users?.map((user) => (
+            <option key={user._id} value={user._id}>
+              {user.username}
+            </option>
+          ))}
+        </select>
+        {(filters.status || filters.priority || filters.assignee) && (
+          <button
+            onClick={() => setFilters({ status: "", priority: "", assignee: "" })}
+            className="text-xs px-3 py-1.5 rounded bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20"
+          >
+            Clear Filters
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -76,26 +179,47 @@ export default function TableView({ tasks, onTaskClick, projects, users }) {
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-8">
                 #
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[250px]">
-                Task
+              <th 
+                onClick={() => handleSort("title")}
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[250px] cursor-pointer hover:text-white hover:bg-neutral-800/50 transition-colors"
+              >
+                Task {sortBy === "title" && (sortOrder === "asc" ? "↑" : "↓")}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[120px]">
-                Status
+              <th 
+                onClick={() => handleSort("status")}
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[120px] cursor-pointer hover:text-white hover:bg-neutral-800/50 transition-colors"
+              >
+                Status {sortBy === "status" && (sortOrder === "asc" ? "↑" : "↓")}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[100px]">
-                Priority
+              <th 
+                onClick={() => handleSort("priority")}
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[100px] cursor-pointer hover:text-white hover:bg-neutral-800/50 transition-colors"
+              >
+                Priority {sortBy === "priority" && (sortOrder === "asc" ? "↑" : "↓")}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[150px]">
-                Assignee
+              <th 
+                onClick={() => handleSort("assignee")}
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[150px] cursor-pointer hover:text-white hover:bg-neutral-800/50 transition-colors"
+              >
+                Assignee {sortBy === "assignee" && (sortOrder === "asc" ? "↑" : "↓")}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[150px]">
-                Project
+              <th 
+                onClick={() => handleSort("project")}
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[150px] cursor-pointer hover:text-white hover:bg-neutral-800/50 transition-colors"
+              >
+                Project {sortBy === "project" && (sortOrder === "asc" ? "↑" : "↓")}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[120px]">
-                Due Date
+              <th 
+                onClick={() => handleSort("dueDate")}
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[120px] cursor-pointer hover:text-white hover:bg-neutral-800/50 transition-colors"
+              >
+                Due Date {sortBy === "dueDate" && (sortOrder === "asc" ? "↑" : "↓")}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[100px]">
-                Progress
+              <th 
+                onClick={() => handleSort("progress")}
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[100px] cursor-pointer hover:text-white hover:bg-neutral-800/50 transition-colors"
+              >
+                Progress {sortBy === "progress" && (sortOrder === "asc" ? "↑" : "↓")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[80px]">
                 Type
@@ -103,11 +227,12 @@ export default function TableView({ tasks, onTaskClick, projects, users }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-800 bg-neutral-950/50">
-            {tasks.map((task, index) => {
+            {sortedTasks.map((task, index) => {
               const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "completed";
+              const isSaving = (field) => savingCells.has(`${task._id}-${field}`);
               
               return (
-                <tr key={task._id} className="hover:bg-neutral-900/50 transition-colors group">
+                <tr key={task._id} className="hover:bg-neutral-900/50 transition-colors group relative">
                   {/* Row Number */}
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {index + 1}
@@ -115,7 +240,7 @@ export default function TableView({ tasks, onTaskClick, projects, users }) {
 
                   {/* Task Title - Editable */}
                   <td 
-                    className="px-4 py-3 cursor-pointer"
+                    className="px-4 py-3 cursor-pointer relative"
                     onClick={() => onTaskClick(task)}
                   >
                     {editingCell === `${task._id}-title` ? (
@@ -133,11 +258,16 @@ export default function TableView({ tasks, onTaskClick, projects, users }) {
                         className="w-full px-2 py-1 bg-neutral-800 border border-blue-500 rounded text-sm text-white"
                       />
                     ) : (
-                      <div 
-                        className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors"
-                        onDoubleClick={(e) => { e.stopPropagation(); startEdit(task._id, "title", task.title); }}
-                      >
-                        {task.title}
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="flex-1 text-sm font-medium text-white group-hover:text-blue-400 transition-colors"
+                          onDoubleClick={(e) => { e.stopPropagation(); startEdit(task._id, "title", task.title); }}
+                        >
+                          {task.title}
+                        </div>
+                        {isSaving("title") && (
+                          <div className="flex-shrink-0 w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        )}
                       </div>
                     )}
                   </td>
