@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import ProjectChat from "@/components/chat/project-chat";
 import { useRouter } from "next/navigation";
 import SubtaskTree from "./subtask-tree";
+import getPusherClient from "@/lib/pusher/client";
 
 export default function TaskDetailModal({ task, onClose }) {
   const router = useRouter();
@@ -29,6 +30,25 @@ export default function TaskDetailModal({ task, onClose }) {
     loadComments();
     loadProjectTasks();
     loadUsers();
+  }, [task._id]);
+
+  // Real-time comment subscription
+  useEffect(() => {
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = `task-${task._id}`;
+    const channel = pusher.subscribe(channelName);
+
+    channel.bind("comment:new", (newComment) => {
+      // Add new comment to state without refetching
+      setComments((prev) => [...prev, newComment]);
+    });
+
+    return () => {
+      channel.unbind("comment:new");
+      pusher.unsubscribe(channelName);
+    };
   }, [task._id]);
 
   async function onUploadCommentFileChange(e) {

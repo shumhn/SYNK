@@ -5,6 +5,7 @@ import TaskComment from "@/models/TaskComment";
 import Task from "@/models/Task";
 import Notification from "@/models/Notification";
 import { requireRoles } from "@/lib/auth/guard";
+import pusherServer from "@/lib/pusher/server";
 
 export async function GET(req, { params }) {
   const auth = await requireRoles(["admin", "hr", "manager", "employee"]);
@@ -53,6 +54,14 @@ export async function POST(req, { params }) {
     .populate("author", "username email image")
     .populate("mentions", "username email")
     .lean();
+  
+  // Trigger real-time event for this comment
+  try {
+    await pusherServer.trigger(`task-${id}`, "comment:new", populated);
+  } catch (e) {
+    console.error("Pusher trigger failed:", e);
+    // Don't block comment creation if Pusher fails
+  }
   
   // Create notifications for mentioned users (best-effort)
   try {
