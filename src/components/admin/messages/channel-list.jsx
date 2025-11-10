@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export default function ChannelList({ channels, selectedChannel, onSelectChannel, currentUserId }) {
+export default function ChannelList({ channels = [], loading = false, selectedChannel, onSelectChannel, currentUserId }) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredChannels = channels.filter(channel => {
@@ -85,7 +85,9 @@ export default function ChannelList({ channels, selectedChannel, onSelectChannel
 
       {/* Channel List */}
       <div className="flex-1 overflow-y-auto">
-        {filteredChannels.length === 0 ? (
+        {loading ? (
+          <div className="p-4 text-center text-gray-500">Loading conversations…</div>
+        ) : filteredChannels.length === 0 ? (
           <div className="p-4 text-center text-gray-400">
             <div className="text-2xl mb-2">💬</div>
             <p className="text-sm">No conversations found</p>

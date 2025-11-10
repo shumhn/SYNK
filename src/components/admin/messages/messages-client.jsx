@@ -1,21 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import ChannelList from "./channel-list";
 import MessageThread from "./message-thread";
 import NewChannelModal from "./new-channel-modal";
 
 export default function MessagesClient({ currentUser }) {
   const [channels, setChannels] = useState([]);
-  const [selectedChannel, setSelectedChannel] = useState(null);
+  const [selectedChannelId, setSelectedChannelId] = useState(null);
   const [showNewChannelModal, setShowNewChannelModal] = useState(false);
   const [channelType, setChannelType] = useState("all"); // all, private, group
+  const [loadingChannels, setLoadingChannels] = useState(false);
 
-  useEffect(() => {
-    loadChannels();
-  }, [channelType]);
+  const selectedChannel = useMemo(() => {
+    if (!selectedChannelId) return null;
+    return channels.find((c) => c._id === selectedChannelId) || null;
+  }, [channels, selectedChannelId]);
 
-  async function loadChannels() {
+  const loadChannels = useCallback(async ({ forceSelectFirst = false } = {}) => {
+    setLoadingChannels(true);
     try {
       const url = channelType === "all" 
         ? "/api/channels" 
@@ -23,18 +26,48 @@ export default function MessagesClient({ currentUser }) {
       const res = await fetch(url);
       const data = await res.json();
       if (!data.error) {
-        setChannels(data.data);
+        const fetched = Array.isArray(data.data) ? data.data : [];
+        setChannels(fetched);
+
+        if (fetched.length === 0) {
+          setSelectedChannelId(null);
+        } else if (forceSelectFirst || !selectedChannelId) {
+          setSelectedChannelId(fetched[0]._id);
+        } else if (!fetched.some((c) => c._id === selectedChannelId)) {
+          setSelectedChannelId(fetched[0]._id);
+        }
       }
     } catch (e) {
       console.error("Failed to load channels:", e);
+    } finally {
+      setLoadingChannels(false);
     }
-  }
+  }, [channelType, selectedChannelId]);
+
+  useEffect(() => {
+    loadChannels({ forceSelectFirst: true });
+  }, [loadChannels]);
+
+  useEffect(() => {
+    loadChannels();
+  }, [channelType, loadChannels]);
 
   function handleChannelCreated(newChannel) {
-    setChannels([newChannel, ...channels]);
-    setSelectedChannel(newChannel);
+    setChannels((prev) => {
+      const without = prev.filter((c) => c._id !== newChannel._id);
+      return [newChannel, ...without];
+    });
+    setSelectedChannelId(newChannel._id);
     setShowNewChannelModal(false);
   }
+
+  const handleSelectChannel = useCallback((channel) => {
+    setSelectedChannelId(channel?._id || null);
+  }, []);
+
+  const handleChannelUpdated = useCallback(() => {
+    loadChannels();
+  }, [loadChannels]);
 
   return (
     <div className="flex h-full bg-neutral-950">
@@ -84,9 +117,10 @@ export default function MessagesClient({ currentUser }) {
         {/* Channel List */}
         <ChannelList
           channels={channels}
+          loading={loadingChannels}
           selectedChannel={selectedChannel}
-          onSelectChannel={setSelectedChannel}
-          currentUserId={currentUser._id}
+          onSelectChannel={handleSelectChannel}
+          currentUserId={currentUser._id?.toString?.() || currentUser._id}
         />
       </div>
 
@@ -96,6 +130,7 @@ export default function MessagesClient({ currentUser }) {
           <MessageThread
             channel={selectedChannel}
             currentUser={currentUser}
+            onChannelUpdated={handleChannelUpdated}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-400">
@@ -113,7 +148,7 @@ export default function MessagesClient({ currentUser }) {
         <NewChannelModal
           onClose={() => setShowNewChannelModal(false)}
           onChannelCreated={handleChannelCreated}
-          currentUserId={currentUser._id}
+          currentUserId={currentUser._id?.toString?.() || currentUser._id}
         />
       )}
     </div>
