@@ -20,6 +20,8 @@ export async function GET(req, { params }) {
   const comments = await TaskComment.find({ task: id })
     .populate("author", "username email image")
     .populate("mentions", "username email")
+    .populate("reactions.user", "username image")
+    .populate("parentComment")
     .sort({ createdAt: 1 })
     .lean();
   
@@ -36,7 +38,7 @@ export async function POST(req, { params }) {
   }
   
   const body = await req.json();
-  const { content, mentions, attachments } = body;
+  const { content, mentions, attachments, parentComment } = body;
   if (!content?.trim()) {
     return NextResponse.json({ error: true, message: { content: ["Content is required"] } }, { status: 400 });
   }
@@ -48,6 +50,7 @@ export async function POST(req, { params }) {
     content: content.trim(),
     mentions: mentions || [],
     attachments: attachments || [],
+    parentComment: parentComment || null,
   });
   
   const populated = await TaskComment.findById(created._id)

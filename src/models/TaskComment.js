@@ -13,6 +13,16 @@ const TaskCommentSchema = new mongoose.Schema(
         size: { type: Number },
       },
     ],
+    // Threading support
+    parentComment: { type: mongoose.Schema.Types.ObjectId, ref: "TaskComment", default: null, index: true },
+    // Emoji reactions
+    reactions: [
+      {
+        emoji: { type: String, required: true }, // e.g., "👍", "❤️", "😄"
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
     edited: { type: Boolean, default: false },
     editedAt: { type: Date },
   },

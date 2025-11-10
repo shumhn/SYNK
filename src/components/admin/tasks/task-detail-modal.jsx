@@ -5,6 +5,7 @@ import ProjectChat from "@/components/chat/project-chat";
 import { useRouter } from "next/navigation";
 import SubtaskTree from "./subtask-tree";
 import getPusherClient from "@/lib/pusher/client";
+import ThreadedComments from "./threaded-comments";
 
 export default function TaskDetailModal({ task, onClose }) {
   const router = useRouter();
@@ -25,11 +26,13 @@ export default function TaskDetailModal({ task, onClose }) {
   const fileInputRef = useRef(null);
   const [commentUploading, setCommentUploading] = useState(false);
   const commentFileInputRef = useRef(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     loadComments();
     loadProjectTasks();
     loadUsers();
+    loadCurrentUser();
   }, [task._id]);
 
   // Real-time comment subscription
@@ -41,12 +44,27 @@ export default function TaskDetailModal({ task, onClose }) {
     const channel = pusher.subscribe(channelName);
 
     channel.bind("comment:new", (newComment) => {
-      // Add new comment to state without refetching
       setComments((prev) => [...prev, newComment]);
+    });
+    
+    channel.bind("comment:updated", (updatedComment) => {
+      setComments((prev) =>
+        prev.map((c) => (c._id === updatedComment._id ? updatedComment : c))
+      );
+    });
+    
+    channel.bind("comment:deleted", ({ commentId }) => {
+      setComments((prev) => prev.filter((c) => c._id !== commentId && c.parentComment !== commentId));
+    });
+    
+    channel.bind("comment:reaction", ({ commentId, reactions }) => {
+      setComments((prev) =>
+        prev.map((c) => (c._id === commentId ? { ...c, reactions } : c))
+      );
     });
 
     return () => {
-      channel.unbind("comment:new");
+      channel.unbind_all();
       pusher.unsubscribe(channelName);
     };
   }, [task._id]);
@@ -122,6 +140,14 @@ export default function TaskDetailModal({ task, onClose }) {
       if (!data.error) setUsers(data.data || []);
     } catch (e) {}
   }
+  
+  async function loadCurrentUser() {
+    try {
+      const res = await fetch(`/api/auth/me`);
+      const data = await res.json();
+      if (!data.error) setCurrentUser(data.data);
+    } catch (e) {}
+  }
 
   async function loadComments() {
     try {
@@ -141,27 +167,68 @@ export default function TaskDetailModal({ task, onClose }) {
     } catch (e) {}
   }
 
-  async function addComment(e) {
-    e.preventDefault();
-    if (!commentText.trim()) return;
+  async function addComment(content, parentCommentId = null) {
+    if (!content.trim()) return;
     try {
       const res = await fetch(`/api/tasks/${task._id}/comments`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          content: commentText,
-          mentions: commentMentions,
-          attachments: commentFile.filename && commentFile.url ? [{ filename: commentFile.filename, url: commentFile.url }] : [],
+          content: content.trim(),
+          mentions: [],
+          attachments: [],
+          parentComment: parentCommentId,
         }),
       });
       const data = await res.json();
       if (!data.error) {
-        setComments([...comments, data.data]);
-        setCommentText("");
-        setCommentMentions([]);
-        setCommentFile({ filename: "", url: "" });
+        // Real-time will handle adding to state
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to add comment:", e);
+    }
+  }
+  
+  async function handleReply(parentCommentId, content) {
+    await addComment(content, parentCommentId);
+  }
+  
+  async function handleReact(commentId, emoji) {
+    try {
+      await fetch(`/api/comments/${commentId}/reactions`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ emoji }),
+      });
+      // Real-time will handle updating state
+    } catch (e) {
+      console.error("Failed to react:", e);
+    }
+  }
+  
+  async function handleEditComment(commentId, content) {
+    try {
+      await fetch(`/api/comments/${commentId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      // Real-time will handle updating state
+    } catch (e) {
+      console.error("Failed to edit comment:", e);
+    }
+  }
+  
+  async function handleDeleteComment(commentId) {
+    if (!confirm("Delete this comment and all its replies?")) return;
+    try {
+      await fetch(`/api/comments/${commentId}`, {
+        method: "DELETE",
+      });
+      // Real-time will handle removing from state
+    } catch (e) {
+      console.error("Failed to delete comment:", e);
+    }
   }
 
   async function toggleChecklistItem(index) {
@@ -337,95 +404,15 @@ export default function TaskDetailModal({ task, onClose }) {
           )}
 
           {activeTab === "comments" && (
-            <div className="space-y-4">
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {comments.map((c) => (
-                  <div key={c._id} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-neutral-800 flex-shrink-0" />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">{c.author?.username || "Unknown"}</div>
-                      <div className="text-sm text-gray-300 mt-1">{c.content}</div>
-                      <div className="text-xs text-gray-500 mt-1">{new Date(c.createdAt).toLocaleString()}</div>
-                      {Array.isArray(c.mentions) && c.mentions.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {c.mentions.map((m)=> (
-                            <span key={m._id || m} className="text-xs px-2 py-0.5 rounded bg-neutral-800">@{m.username || m}</span>
-                          ))}
-                        </div>
-                      )}
-                      {Array.isArray(c.attachments) && c.attachments.length > 0 && (
-                        <div className="mt-2 space-y-2">
-                          {c.attachments.map((a, i) => {
-                            const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(a.url || "");
-                            return (
-                              <div key={i} className="p-2 rounded border border-neutral-800">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs">{a.filename}</span>
-                                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-xs underline">Open</a>
-                                </div>
-                                {isImage && (
-                                  <img src={a.url} alt={a.filename} className="mt-2 max-h-40 rounded border border-neutral-900" />
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {comments.length === 0 && <div className="p-8 text-center text-gray-400">No comments yet.</div>}
-              </div>
-              <form onSubmit={addComment} className="space-y-2">
-                <div className="flex gap-2">
-                  <input
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="Add a comment..."
-                    className="flex-1 px-3 py-2 rounded bg-neutral-800 border border-neutral-700"
-                  />
-                  <button className="bg-white text-black px-4 py-2 rounded">Post</button>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Mentions</label>
-                  <select
-                    multiple
-                    value={commentMentions}
-                    onChange={(e)=>setCommentMentions(Array.from(e.target.selectedOptions).map(o=>o.value))}
-                    className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 h-24"
-                  >
-                    {users.map((u)=> (
-                      <option key={u._id} value={u._id}>@{u.username}</option>
-                    ))}
-                  </select>
-                  <div className="text-xs text-gray-500 mt-1">Hold Cmd/Ctrl to select multiple users to notify.</div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    value={commentFile.filename}
-                    onChange={(e)=>setCommentFile({...commentFile, filename: e.target.value})}
-                    placeholder="Attachment filename (optional)"
-                    className="px-3 py-2 rounded bg-neutral-800 border border-neutral-700"
-                  />
-                  <input
-                    value={commentFile.url}
-                    onChange={(e)=>setCommentFile({...commentFile, url: e.target.value})}
-                    placeholder="Attachment URL (optional)"
-                    className="px-3 py-2 rounded bg-neutral-800 border border-neutral-700"
-                  />
-                </div>
-                <div className="flex items-center gap-3">
-                  <input ref={commentFileInputRef} type="file" className="hidden" onChange={onUploadCommentFileChange} />
-                  <button type="button" onClick={()=>commentFileInputRef.current?.click()} disabled={commentUploading} className="px-3 py-2 rounded border border-neutral-700 hover:bg-neutral-900 text-sm">
-                    {commentUploading ? "Uploading..." : "Upload file for comment"}
-                  </button>
-                  {commentFile.url && (
-                    <span className="text-xs text-gray-400">Ready: {commentFile.filename}</span>
-                  )}
-                </div>
-                <div className="text-xs text-gray-500">Add an optional attachment by providing filename and URL. Images will preview.</div>
-              </form>
-            </div>
+            <ThreadedComments
+              comments={comments}
+              onAddComment={(content) => addComment(content)}
+              onReply={handleReply}
+              onReact={handleReact}
+              onEdit={handleEditComment}
+              onDelete={handleDeleteComment}
+              currentUserId={currentUser?._id}
+            />
           )}
 
           {activeTab === "checklist" && (
