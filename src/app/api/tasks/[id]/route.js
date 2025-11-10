@@ -46,6 +46,26 @@ export async function PATCH(req, { params }) {
     const existsType = await TaskType.findOne({ name: update.taskType, archived: { $ne: true } }).lean();
     if (!existsType) return NextResponse.json({ error: true, message: "Invalid task type" }, { status: 400 });
   }
+  
+  // Cycle guard for dependencies: prevent circular dependency chains
+  if (Array.isArray(body.dependencies) && body.dependencies.length > 0) {
+    async function hasDependencyCycle(taskId, depIds, visited = new Set()) {
+      if (visited.has(taskId.toString())) return true; // cycle detected
+      visited.add(taskId.toString());
+      for (const depId of depIds) {
+        if (depId.toString() === taskId.toString()) return true; // self-dependency
+        const depTask = await Task.findById(depId).select("dependencies").lean();
+        if (depTask && depTask.dependencies && depTask.dependencies.length > 0) {
+          if (await hasDependencyCycle(taskId, depTask.dependencies, visited)) return true;
+        }
+      }
+      return false;
+    }
+    if (await hasDependencyCycle(id, body.dependencies)) {
+      return NextResponse.json({ error: true, message: "Circular dependency detected" }, { status: 400 });
+    }
+  }
+  
   // Enforce dependency blocking for forward-moving statuses
   if (requestedStatus && ["in_progress", "review", "completed"].includes(requestedStatus)) {
     const current = await Task.findById(id).select("dependencies status").lean();

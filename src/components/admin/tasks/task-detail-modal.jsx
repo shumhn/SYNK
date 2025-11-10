@@ -3,18 +3,17 @@
 import { useState, useEffect, useRef } from "react";
 import ProjectChat from "@/components/chat/project-chat";
 import { useRouter } from "next/navigation";
+import SubtaskTree from "./subtask-tree";
 
 export default function TaskDetailModal({ task, onClose }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("details");
-  const [subtasks, setSubtasks] = useState([]);
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
   const [commentMentions, setCommentMentions] = useState([]);
   const [commentFile, setCommentFile] = useState({ filename: "", url: "" });
   const [checklist, setChecklist] = useState(task.checklist || []);
   const [newChecklistText, setNewChecklistText] = useState("");
-  const [newSubtask, setNewSubtask] = useState({ title: "", assignee: "", estimatedHours: 0 });
   const [projectTasks, setProjectTasks] = useState([]);
   const [dependencies, setDependencies] = useState(task.dependencies || []);
   const [attachments, setAttachments] = useState(task.attachments || []);
@@ -27,19 +26,10 @@ export default function TaskDetailModal({ task, onClose }) {
   const commentFileInputRef = useRef(null);
 
   useEffect(() => {
-    loadSubtasks();
     loadComments();
     loadProjectTasks();
     loadUsers();
   }, [task._id]);
-
-  async function loadSubtasks() {
-    try {
-      const res = await fetch(`/api/tasks/${task._id}/subtasks`);
-      const data = await res.json();
-      if (!data.error) setSubtasks(data.data);
-    } catch (e) {}
-  }
 
   async function onUploadCommentFileChange(e) {
     const file = e.target.files?.[0];
@@ -163,19 +153,6 @@ export default function TaskDetailModal({ task, onClose }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ checklist: updated }),
     });
-    router.refresh();
-  }
-
-  async function createSubtask(e) {
-    e.preventDefault();
-    if (!newSubtask.title.trim()) return;
-    await fetch(`/api/tasks/${task._id}/subtasks`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ title: newSubtask.title, assignee: newSubtask.assignee || undefined, estimatedHours: Number(newSubtask.estimatedHours) || undefined }),
-    });
-    setNewSubtask({ title: "", assignee: "", estimatedHours: 0 });
-    loadSubtasks();
     router.refresh();
   }
 
@@ -336,39 +313,7 @@ export default function TaskDetailModal({ task, onClose }) {
           )}
 
           {activeTab === "subtasks" && (
-            <div className="space-y-3">
-              <form onSubmit={createSubtask} className="flex items-end gap-2 p-3 rounded border border-neutral-800">
-                <div className="flex-1">
-                  <label className="block text-xs text-gray-400 mb-1">Title</label>
-                  <input value={newSubtask.title} onChange={(e)=>setNewSubtask({...newSubtask, title: e.target.value})} className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700" required />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Assignee</label>
-                  <select value={newSubtask.assignee} onChange={(e)=>setNewSubtask({...newSubtask, assignee: e.target.value})} className="px-3 py-2 rounded bg-neutral-800 border border-neutral-700">
-                    <option value="">—</option>
-                    {users.map((u)=>(<option key={u._id} value={u._id}>{u.username}</option>))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Est. Hours</label>
-                  <input type="number" value={newSubtask.estimatedHours} onChange={(e)=>setNewSubtask({...newSubtask, estimatedHours: e.target.value})} className="px-3 py-2 rounded bg-neutral-800 border border-neutral-700 w-28" />
-                </div>
-                <button className="bg-white text-black px-3 py-2 rounded">Add</button>
-              </form>
-              {subtasks.length > 0 ? (
-                subtasks.map((st) => (
-                  <div key={st._id} className="p-3 rounded border border-neutral-800">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{st.title}</span>
-                      <span className="text-xs px-2 py-1 rounded bg-neutral-800">{st.status}</span>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">{st.description || "No description"}</p>
-                  </div>
-                ))
-              ) : (
-                <div className="p-8 text-center text-gray-400">No subtasks yet.</div>
-              )}
-            </div>
+            <SubtaskTree taskId={task._id} users={users} />
           )}
 
           {activeTab === "comments" && (

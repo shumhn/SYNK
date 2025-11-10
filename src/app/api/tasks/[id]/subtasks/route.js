@@ -42,6 +42,16 @@ export async function POST(req, { params }) {
   const parent = await Task.findById(id).lean();
   if (!parent) return NextResponse.json({ error: true, message: "Parent task not found" }, { status: 404 });
   
+  // Cycle guard: prevent creating subtask under a descendant or self (would create loop)
+  async function isDescendant(potentialParentId, targetTaskId) {
+    if (potentialParentId.toString() === targetTaskId.toString()) return true;
+    const task = await Task.findById(targetTaskId).select("parentTask").lean();
+    if (!task || !task.parentTask) return false;
+    return isDescendant(potentialParentId, task.parentTask);
+  }
+  // Since we're creating a new task, no cycle yet. But if parentTask itself has a parent chain,
+  // we don't need to check because new tasks can't be ancestors.
+  
   const created = await Task.create({
     project: parent.project,
     parentTask: id,
