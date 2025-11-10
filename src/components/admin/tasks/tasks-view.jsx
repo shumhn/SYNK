@@ -4,6 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import TaskDetailModal from "./task-detail-modal";
 import TemplatesUseModal from "./templates-use-modal";
+import KanbanBoard from "./kanban-board";
+import ListView from "./list-view";
+import TableView from "./table-view";
+import CalendarView from "./calendar-view";
+import TimelineView from "./timeline-view";
 
 function PriorityBadge({ priority }) {
   const colors = {
@@ -34,6 +39,7 @@ export default function TasksView({ initialTasks, projects, users, taskTypes = [
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [bulkProject, setBulkProject] = useState("");
   const [bulkAssignee, setBulkAssignee] = useState("");
+  const [viewMode, setViewMode] = useState("table"); // 'table', 'list', 'kanban', 'calendar', or 'timeline'
 
   async function updateTask(id, patch) {
     try {
@@ -104,11 +110,93 @@ export default function TasksView({ initialTasks, projects, users, taskTypes = [
       )}
 
       <div className="flex items-center justify-between">
-        <div />
-        <button onClick={() => setShowTemplateModal(true)} className="text-sm bg-white text-black px-3 py-1 rounded">Create from template</button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setViewMode("table")}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === "table"
+                ? "bg-white text-black shadow-md"
+                : "bg-neutral-900 text-gray-400 hover:text-white border border-neutral-800 hover:border-neutral-700"
+            }`}
+          >
+            📊 Table
+          </button>
+          <button
+            onClick={() => setViewMode("list")}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === "list"
+                ? "bg-white text-black shadow-md"
+                : "bg-neutral-900 text-gray-400 hover:text-white border border-neutral-800 hover:border-neutral-700"
+            }`}
+          >
+            📝 List
+          </button>
+          <button
+            onClick={() => setViewMode("kanban")}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === "kanban"
+                ? "bg-white text-black shadow-md"
+                : "bg-neutral-900 text-gray-400 hover:text-white border border-neutral-800 hover:border-neutral-700"
+            }`}
+          >
+            🎯 Kanban
+          </button>
+          <button
+            onClick={() => setViewMode("calendar")}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === "calendar"
+                ? "bg-white text-black shadow-md"
+                : "bg-neutral-900 text-gray-400 hover:text-white border border-neutral-800 hover:border-neutral-700"
+            }`}
+          >
+            📅 Calendar
+          </button>
+          <button
+            onClick={() => setViewMode("timeline")}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === "timeline"
+                ? "bg-white text-black shadow-md"
+                : "bg-neutral-900 text-gray-400 hover:text-white border border-neutral-800 hover:border-neutral-700"
+            }`}
+          >
+            📈 Timeline
+          </button>
+        </div>
+        <button onClick={() => setShowTemplateModal(true)} className="text-sm bg-white text-black px-4 py-1.5 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+          ✨ Create from template
+        </button>
       </div>
 
-      <div className="overflow-x-auto rounded border border-neutral-800 mt-3">
+      {viewMode === "table" ? (
+        <TableView
+          tasks={initialTasks}
+          onTaskClick={setSelectedTask}
+          projects={projects}
+          users={users}
+        />
+      ) : viewMode === "list" ? (
+        <ListView
+          tasks={initialTasks}
+          onTaskClick={setSelectedTask}
+        />
+      ) : viewMode === "kanban" ? (
+        <KanbanBoard
+          tasks={initialTasks}
+          onTaskClick={setSelectedTask}
+          onTaskUpdate={() => router.refresh()}
+        />
+      ) : viewMode === "calendar" ? (
+        <CalendarView
+          tasks={initialTasks}
+          onTaskClick={setSelectedTask}
+        />
+      ) : viewMode === "timeline" ? (
+        <TimelineView
+          tasks={initialTasks}
+          onTaskClick={setSelectedTask}
+        />
+      ) : (
+        <div className="overflow-x-auto rounded border border-neutral-800 mt-3">
         <table className="min-w-full text-sm">
           <thead className="bg-neutral-900">
             <tr>
@@ -132,13 +220,16 @@ export default function TasksView({ initialTasks, projects, users, taskTypes = [
                 </td>
                 <td className="p-3">
                   <div className="font-medium">{t.title}</div>
-                  {t.tags?.length > 0 && (
-                    <div className="flex gap-1 mt-1">
-                      {t.tags.slice(0, 3).map((tag) => (
-                        <span key={tag} className="text-xs px-1 rounded bg-neutral-800">#{tag}</span>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {t.tags?.length > 0 && t.tags.slice(0, 3).map((tag) => (
+                      <span key={tag} className="text-xs px-1 rounded bg-neutral-800">#{tag}</span>
+                    ))}
+                    {Array.isArray(t.dependencies) && t.dependencies.length > 0 && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-orange-900/30 text-orange-300 border border-orange-800">
+                        ⏳ Waiting on {t.dependencies.filter(d => d?.status !== "completed").length} task{t.dependencies.filter(d => d?.status !== "completed").length !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="p-3 text-gray-300">{t.project?.title || "—"}</td>
                 <td className="p-3">
@@ -182,8 +273,9 @@ export default function TasksView({ initialTasks, projects, users, taskTypes = [
           </tbody>
         </table>
       </div>
+      )}
 
-      {selected.length > 0 && (
+      {viewMode === "list" && selected.length > 0 && (
         <div className="flex items-center gap-3 p-3 bg-neutral-900 rounded border border-neutral-800">
           <span className="text-sm">Bulk:</span>
           <select value={bulkProject} onChange={(e) => setBulkProject(e.target.value)} className="px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm">
@@ -221,7 +313,7 @@ function TaskFilters({ filters, projects, users, taskTypes = [] }) {
 
   return (
     <div className="p-4 rounded border border-neutral-800 space-y-3">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         <input
           placeholder="Search tasks..."
           defaultValue={filters.q}
@@ -234,7 +326,7 @@ function TaskFilters({ filters, projects, users, taskTypes = [] }) {
           <option value="in_progress">In Progress</option>
           <option value="review">Review</option>
           <option value="completed">Completed</option>
-          <option value="blocked">Blocked</option>
+          <option value="blocked">⛔ Blocked Only</option>
         </select>
         <select defaultValue={filters.priority || ""} onChange={(e) => updateFilter("priority", e.target.value)} className="px-3 py-2 rounded bg-neutral-900 border border-neutral-800">
           <option value="">All Priorities</option>

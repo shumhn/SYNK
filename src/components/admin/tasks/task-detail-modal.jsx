@@ -313,7 +313,7 @@ export default function TaskDetailModal({ task, onClose }) {
           )}
 
           {activeTab === "subtasks" && (
-            <SubtaskTree taskId={task._id} users={users} />
+            <SubtaskTree taskId={task._id} users={users} projectId={task.project?._id || task.project} />
           )}
 
           {activeTab === "comments" && (

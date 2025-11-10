@@ -38,6 +38,7 @@ export default async function TasksPage({ searchParams }) {
       .populate("project", "title")
       .populate("assignee", "username email image")
       .populate("assignees", "username email image")
+      .populate("dependencies", "title status")
       .sort({ [sortBy]: sortOrder })
       .limit(100)
       .lean(),

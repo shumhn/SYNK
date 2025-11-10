@@ -11,6 +11,7 @@ import TimelineView from "./timeline-view";
 import TemplateTaskModal from "./template-task-modal";
 import ProjectDependencies from "./project-dependencies";
 import ProjectChat from "@/components/chat/project-chat";
+import CriticalPathView from "./critical-path-view";
 
 export default function ProjectTabs({ tab, project, milestones, phases, objectives, tasks, allDepartments, allUsers, taskTypes = [] }) {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function ProjectTabs({ tab, project, milestones, phases, objectiv
     "objectives",
     "tasks",
     "dependencies",
+    "critical-path",
     "budget",
     "resources",
     "team",
@@ -30,12 +32,16 @@ export default function ProjectTabs({ tab, project, milestones, phases, objectiv
   ];
 
   function TabButton({ name, active }) {
+    const label = name
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
     return (
       <Link
         href={`?tab=${name}`}
         className={`px-4 py-2 rounded-t border-b-2 ${active ? "border-white" : "border-transparent text-gray-400 hover:text-gray-300"}`}
       >
-        {name.charAt(0).toUpperCase() + name.slice(1)}
+        {label}
       </Link>
     );
   }
@@ -62,6 +68,7 @@ export default function ProjectTabs({ tab, project, milestones, phases, objectiv
           <TasksTab project={project} tasks={tasks} milestones={milestones} allUsers={allUsers} taskTypes={taskTypes} />
         )}
         {tab === "dependencies" && <ProjectDependencies projectId={project._id} />}
+        {tab === "critical-path" && <CriticalPathView projectId={project._id} />}
         {tab === "budget" && <BudgetTab project={project} />}
         {tab === "resources" && <ResourcesTab project={project} />}
         {tab === "team" && <TeamTab project={project} allDepartments={allDepartments} allUsers={allUsers} />}

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 
-function SubtaskNode({ subtask, level = 0, onToggleExpand, expanded, users }) {
+function SubtaskNode({ subtask, level = 0, onToggleExpand, expanded, users, allTasks = [], onReparent }) {
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showReparentMenu, setShowReparentMenu] = useState(false);
   const hasChildren = subtask._id; // all tasks can potentially have children
 
   useEffect(() => {
@@ -22,6 +23,26 @@ function SubtaskNode({ subtask, level = 0, onToggleExpand, expanded, users }) {
     } catch (e) {
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleReparent(newParentId) {
+    if (!newParentId) return;
+    try {
+      const res = await fetch(`/api/tasks/${subtask._id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ parentTask: newParentId === "root" ? null : newParentId }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert(data.message || "Failed to reparent");
+      } else {
+        setShowReparentMenu(false);
+        onReparent?.();
+      }
+    } catch (e) {
+      alert("Unexpected error");
     }
   }
 
@@ -77,6 +98,34 @@ function SubtaskNode({ subtask, level = 0, onToggleExpand, expanded, users }) {
               </span>
             )}
           </div>
+          <div className="relative">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowReparentMenu(!showReparentMenu); }}
+              className="text-xs px-2 py-1 rounded border border-neutral-700 hover:bg-neutral-900"
+              title="Move to another parent"
+            >
+              📋 Move
+            </button>
+            {showReparentMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-neutral-900 border border-neutral-800 rounded shadow-lg z-10 min-w-[200px] max-h-64 overflow-y-auto">
+                <button
+                  onClick={() => handleReparent("root")}
+                  className="block w-full text-left px-3 py-2 hover:bg-neutral-800 text-sm"
+                >
+                  Root (No parent)
+                </button>
+                {allTasks.filter(t => t._id !== subtask._id).map((t) => (
+                  <button
+                    key={t._id}
+                    onClick={() => handleReparent(t._id)}
+                    className="block w-full text-left px-3 py-2 hover:bg-neutral-800 text-sm truncate"
+                  >
+                    {t.title}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       {expanded && loading && (
@@ -94,21 +143,33 @@ function SubtaskNode({ subtask, level = 0, onToggleExpand, expanded, users }) {
             onToggleExpand={onToggleExpand}
             expanded={expanded === child._id}
             users={users}
+            allTasks={allTasks}
+            onReparent={onReparent}
           />
         ))}
     </div>
   );
 }
 
-export default function SubtaskTree({ taskId, users = [] }) {
+export default function SubtaskTree({ taskId, users = [], projectId }) {
   const [subtasks, setSubtasks] = useState([]);
   const [expandedNodes, setExpandedNodes] = useState(new Set());
   const [newSubtask, setNewSubtask] = useState({ title: "", assignee: "", estimatedHours: 0 });
   const [progressInfo, setProgressInfo] = useState({ total: 0, completed: 0, percentage: 0 });
+  const [allProjectTasks, setAllProjectTasks] = useState([]);
 
   useEffect(() => {
     loadSubtasks();
-  }, [taskId]);
+    if (projectId) loadProjectTasks();
+  }, [taskId, projectId]);
+
+  async function loadProjectTasks() {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tasks`);
+      const data = await res.json();
+      if (!data.error) setAllProjectTasks(data.data || []);
+    } catch (e) {}
+  }
 
   async function loadSubtasks() {
     try {
@@ -252,6 +313,8 @@ export default function SubtaskTree({ taskId, users = [] }) {
               onToggleExpand={toggleExpand}
               expanded={expandedNodes.has(st._id)}
               users={users}
+              allTasks={allProjectTasks}
+              onReparent={loadSubtasks}
             />
           ))
         ) : (

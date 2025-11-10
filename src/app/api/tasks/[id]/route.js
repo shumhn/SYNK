@@ -39,8 +39,22 @@ export async function PATCH(req, { params }) {
   if (Array.isArray(body.checklist)) update.checklist = body.checklist;
   if (Array.isArray(body.attachments)) update.attachments = body.attachments;
   if (body.recurring) update.recurring = body.recurring;
+  if (body.parentTask !== undefined) update.parentTask = body.parentTask; // allow null to remove parent
   
   await connectToDatabase();
+  
+  // Cycle guard for parentTask (reparenting): prevent making a descendant the parent
+  if (body.parentTask !== undefined && body.parentTask !== null) {
+    async function isDescendant(potentialParentId, taskId) {
+      if (potentialParentId.toString() === taskId.toString()) return true;
+      const task = await Task.findById(taskId).select("parentTask").lean();
+      if (!task || !task.parentTask) return false;
+      return isDescendant(potentialParentId, task.parentTask);
+    }
+    if (await isDescendant(id, body.parentTask)) {
+      return NextResponse.json({ error: true, message: "Cannot set a descendant as parent (would create cycle)" }, { status: 400 });
+    }
+  }
   // Validate dynamic task type if provided
   if (update.taskType) {
     const existsType = await TaskType.findOne({ name: update.taskType, archived: { $ne: true } }).lean();
@@ -63,6 +77,11 @@ export async function PATCH(req, { params }) {
     }
     if (await hasDependencyCycle(id, body.dependencies)) {
       return NextResponse.json({ error: true, message: "Circular dependency detected" }, { status: 400 });
+    }
+    // Sequential enforcement: if any dependency is not completed, force status to 'blocked'
+    const incompleteCount = await Task.countDocuments({ _id: { $in: body.dependencies }, status: { $ne: "completed" } });
+    if (incompleteCount > 0 && !requestedStatus) {
+      update.status = "blocked";
     }
   }
   
@@ -113,6 +132,19 @@ export async function PATCH(req, { params }) {
   } catch (e) {
     // ignore auto progress errors
   }
+
+  // Auto-unblock dependents when this task completes
+  try {
+    if (requestedStatus === "completed") {
+      const dependents = await Task.find({ dependencies: id, status: "blocked" }).select("_id dependencies status").lean();
+      for (const dep of dependents) {
+        const remaining = await Task.countDocuments({ _id: { $in: dep.dependencies }, status: { $ne: "completed" } });
+        if (remaining === 0) {
+          await Task.findByIdAndUpdate(dep._id, { $set: { status: "todo" } });
+        }
+      }
+    }
+  } catch (e) {}
 
   return NextResponse.json({ error: false, data: updated }, { status: 200 });
 }
