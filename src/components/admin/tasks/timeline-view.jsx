@@ -15,10 +15,10 @@ export default function TimelineView({ tasks, onTaskClick }) {
 
   // Filter tasks with dates
   const tasksWithDates = useMemo(() => {
-    return tasks.filter(t => t.dueDate || t.createdAt).map(t => ({
+    return tasks.filter(t => t.dueDate || t.startDate || t.createdAt).map(t => ({
       ...t,
-      startDate: t.createdAt ? new Date(t.createdAt) : new Date(t.dueDate),
-      endDate: t.dueDate ? new Date(t.dueDate) : new Date(t.createdAt),
+      startDate: t.startDate ? new Date(t.startDate) : (t.createdAt ? new Date(t.createdAt) : new Date(t.dueDate)),
+      endDate: t.dueDate ? new Date(t.dueDate) : (t.startDate ? new Date(new Date(t.startDate).getTime() + 7 * 24 * 60 * 60 * 1000) : new Date(t.createdAt)),
     }));
   }, [tasks]);
 
@@ -145,17 +145,44 @@ export default function TimelineView({ tasks, onTaskClick }) {
   }, [today, minDate, maxDate, totalWidth]);
 
   // Handle drag to reschedule
-  async function handleTaskDragEnd(task) {
+  function handleBarMouseDown(e, task, type) {
+    e.stopPropagation();
+    setDraggedTask(task);
+    setDragType(type);
+    setDragStartX(e.clientX);
+  }
+
+  async function handleMouseMove(e) {
     if (!draggedTask || !dragType) return;
     
-    // Calculate new dates based on drag
-    // This is simplified - in production you'd calculate based on mouse position
+    const deltaX = e.clientX - dragStartX;
+    const deltaDays = Math.round(deltaX / (columnWidth / (zoom === "day" ? 1 : zoom === "week" ? 7 : 30)));
+    
+    if (deltaDays === 0) return;
+
+    const task = draggedTask;
+    const dayMs = 24 * 60 * 60 * 1000;
+    let newStartDate = new Date(task.startDate);
+    let newEndDate = new Date(task.endDate);
+
+    if (dragType === "move") {
+      newStartDate = new Date(task.startDate.getTime() + deltaDays * dayMs);
+      newEndDate = new Date(task.endDate.getTime() + deltaDays * dayMs);
+    } else if (dragType === "resize-start") {
+      newStartDate = new Date(task.startDate.getTime() + deltaDays * dayMs);
+      if (newStartDate >= newEndDate) return; // prevent invalid range
+    } else if (dragType === "resize-end") {
+      newEndDate = new Date(task.endDate.getTime() + deltaDays * dayMs);
+      if (newEndDate <= newStartDate) return; // prevent invalid range
+    }
+
     try {
       await fetch(`/api/tasks/${task._id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          dueDate: task.endDate,
+          startDate: newStartDate.toISOString(),
+          dueDate: newEndDate.toISOString(),
         }),
       });
       router.refresh();
@@ -165,6 +192,13 @@ export default function TimelineView({ tasks, onTaskClick }) {
     
     setDraggedTask(null);
     setDragType(null);
+    setDragStartX(0);
+  }
+
+  function handleMouseUp() {
+    setDraggedTask(null);
+    setDragType(null);
+    setDragStartX(0);
   }
 
   return (
@@ -258,7 +292,12 @@ export default function TimelineView({ tasks, onTaskClick }) {
       </div>
 
       {/* Timeline Container */}
-      <div className="border border-neutral-800 rounded-lg overflow-hidden bg-neutral-950/50">
+      <div 
+        className="border border-neutral-800 rounded-lg overflow-hidden bg-neutral-950/50"
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
         {/* Timeline Header */}
         <div className="sticky top-0 z-20 bg-neutral-900 border-b border-neutral-800">
           <div className="flex">
@@ -337,24 +376,25 @@ export default function TimelineView({ tasks, onTaskClick }) {
 
                       {/* Task Bar */}
                       <div
-                        className={`absolute top-1/2 -translate-y-1/2 h-8 rounded-lg border-2 cursor-pointer transition-all ${getStatusColor(task.status)} ${
+                        className={`absolute top-1/2 -translate-y-1/2 h-8 rounded-lg border-2 cursor-move transition-all ${getStatusColor(task.status)} ${
                           overdue ? "animate-pulse border-red-400" : ""
-                        } hover:brightness-110 hover:scale-105 group-hover:shadow-lg`}
+                        } ${draggedTask?._id === task._id ? "opacity-50 scale-95" : "hover:brightness-110 hover:scale-105 group-hover:shadow-lg"}`}
                         style={{
                           left: `${left}px`,
                           width: `${width}px`,
                         }}
+                        onMouseDown={(e) => handleBarMouseDown(e, task, "move")}
                         onClick={() => onTaskClick(task)}
                         title={`${task.title} (${task.startDate.toLocaleDateString()} - ${task.endDate.toLocaleDateString()})`}
                       >
                         {/* Progress Fill */}
                         <div
-                          className="h-full bg-white/20 rounded-md transition-all"
+                          className="h-full bg-white/20 rounded-md transition-all pointer-events-none"
                           style={{ width: `${task.progress || 0}%` }}
                         />
 
                         {/* Task Info */}
-                        <div className="absolute inset-0 flex items-center justify-between px-2">
+                        <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
                           <span className="text-xs font-medium text-white truncate">
                             {task.title}
                           </span>
@@ -362,8 +402,14 @@ export default function TimelineView({ tasks, onTaskClick }) {
                         </div>
 
                         {/* Resize Handles */}
-                        <div className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/30 rounded-l-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/30 rounded-r-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div 
+                          className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-white/30 rounded-l-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                          onMouseDown={(e) => handleBarMouseDown(e, task, "resize-start")}
+                        />
+                        <div 
+                          className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-white/30 rounded-r-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                          onMouseDown={(e) => handleBarMouseDown(e, task, "resize-end")}
+                        />
                       </div>
 
                       {/* Dependencies Lines */}

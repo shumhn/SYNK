@@ -24,6 +24,8 @@ const TaskSchema = new mongoose.Schema(
       default: "task",
       index: true,
     },
+    // Start date for Timeline (Gantt) scheduling. Optional; if missing, UI may fallback to createdAt.
+    startDate: { type: Date },
     dueDate: { type: Date },
     completedAt: { type: Date },
     estimatedHours: { type: Number },
@@ -55,6 +57,8 @@ const TaskSchema = new mongoose.Schema(
     },
     progress: { type: Number, default: 0, min: 0, max: 100 },
     parentTask: { type: mongoose.Schema.Types.ObjectId, ref: "Task", index: true },
+    // Order within a Kanban column; lower numbers appear first. Can be fractional or averaged.
+    boardOrder: { type: Number, default: 0, index: true },
   },
   { timestamps: true }
 );
@@ -63,3 +67,4 @@ TaskSchema.index({ project: 1, status: 1 });
 TaskSchema.index({ assignee: 1, status: 1 });
 
 export default mongoose.models.Task || mongoose.model("Task", TaskSchema);
+

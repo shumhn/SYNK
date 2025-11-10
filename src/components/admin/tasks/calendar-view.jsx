@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function CalendarView({ tasks, onTaskClick }) {
+  const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState("month"); // 'month' or 'week'
+  const [draggedTask, setDraggedTask] = useState(null);
 
   // Get tasks for a specific date
   function getTasksForDate(date) {
@@ -102,6 +105,40 @@ export default function CalendarView({ tasks, onTaskClick }) {
   const tasksWithDates = tasks.filter(t => t.dueDate);
   const overdueTasks = tasksWithDates.filter(t => new Date(t.dueDate) < new Date() && t.status !== "completed");
 
+  // Drag handlers for rescheduling
+  function handleTaskDragStart(e, task) {
+    setDraggedTask(task);
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDayDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  }
+
+  async function handleDayDrop(e, targetDate) {
+    e.preventDefault();
+    if (!draggedTask) return;
+
+    const newDueDate = new Date(targetDate);
+    newDueDate.setHours(23, 59, 59, 999);
+
+    try {
+      await fetch(`/api/tasks/${draggedTask._id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          dueDate: newDueDate.toISOString(),
+        }),
+      });
+      router.refresh();
+    } catch (e) {
+      console.error("Failed to reschedule task", e);
+    } finally {
+      setDraggedTask(null);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Calendar Header */}
@@ -197,6 +234,8 @@ export default function CalendarView({ tasks, onTaskClick }) {
                   ${isCurrentDay ? "bg-blue-500/5 border-blue-500/30" : ""}
                   hover:bg-neutral-900/30 transition-colors
                 `}
+                onDragOver={handleDayDragOver}
+                onDrop={(e) => handleDayDrop(e, date)}
               >
                 {/* Date Number */}
                 <div className="flex items-center justify-between mb-2">
@@ -222,12 +261,15 @@ export default function CalendarView({ tasks, onTaskClick }) {
                     return (
                       <button
                         key={task._id}
+                        draggable
+                        onDragStart={(e) => handleTaskDragStart(e, task)}
                         onClick={() => onTaskClick(task)}
                         className={`
-                          w-full text-left px-2 py-1 rounded text-xs
+                          w-full text-left px-2 py-1 rounded text-xs cursor-move
                           ${getStatusColor(task.status)} text-white
                           hover:brightness-110 transition-all
                           ${isOverdue ? "border border-red-400 animate-pulse" : ""}
+                          ${draggedTask?._id === task._id ? "opacity-50" : ""}
                           truncate
                         `}
                         title={task.title}

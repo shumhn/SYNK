@@ -30,6 +30,7 @@ export async function PATCH(req, { params }) {
   }
   if (body.priority) update.priority = body.priority;
   if (body.taskType) update.taskType = body.taskType.trim().toLowerCase();
+  if (body.startDate) update.startDate = new Date(body.startDate);
   if (body.dueDate) update.dueDate = new Date(body.dueDate);
   if (typeof body.estimatedHours === "number") update.estimatedHours = body.estimatedHours;
   if (typeof body.actualHours === "number") update.actualHours = body.actualHours;
@@ -40,6 +41,7 @@ export async function PATCH(req, { params }) {
   if (Array.isArray(body.attachments)) update.attachments = body.attachments;
   if (body.recurring) update.recurring = body.recurring;
   if (body.parentTask !== undefined) update.parentTask = body.parentTask; // allow null to remove parent
+  if (typeof body.boardOrder === "number") update.boardOrder = body.boardOrder;
   
   await connectToDatabase();
   
