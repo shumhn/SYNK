@@ -33,3 +33,98 @@ body {
 .font-body {
   font-family: var(--font-body);
 }
+
+/* Markdown Prose Styling for Comments */
+.prose-invert {
+  color: #d1d5db;
+}
+
+.prose-invert h1, .prose-invert h2, .prose-invert h3 {
+  color: #ffffff;
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.prose-invert h1 { font-size: 1.5em; }
+.prose-invert h2 { font-size: 1.3em; }
+.prose-invert h3 { font-size: 1.1em; }
+
+.prose-invert p {
+  margin: 0.5em 0;
+  line-height: 1.6;
+}
+
+.prose-invert a {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+.prose-invert a:hover {
+  color: #93c5fd;
+}
+
+.prose-invert code {
+  background: #262626;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  color: #f472b6;
+}
+
+.prose-invert pre {
+  background: #171717;
+  padding: 1em;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.prose-invert pre code {
+  background: transparent;
+  padding: 0;
+  color: #d1d5db;
+}
+
+.prose-invert ul, .prose-invert ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.prose-invert li {
+  margin: 0.25em 0;
+}
+
+.prose-invert blockquote {
+  border-left: 3px solid #404040;
+  padding-left: 1em;
+  margin: 1em 0;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.prose-invert strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.prose-invert em {
+  font-style: italic;
+}
+
+.prose-invert table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+.prose-invert th, .prose-invert td {
+  border: 1px solid #404040;
+  padding: 0.5em;
+  text-align: left;
+}
+
+.prose-invert th {
+  background: #262626;
+  font-weight: 600;
+}

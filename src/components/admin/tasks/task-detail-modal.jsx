@@ -167,21 +167,21 @@ export default function TaskDetailModal({ task, onClose }) {
     } catch (e) {}
   }
 
-  async function addComment(content, parentCommentId = null) {
-    if (!content.trim()) return;
+  async function addComment(data, parentCommentId = null) {
+    if (!data.content?.trim() && (!data.attachments || data.attachments.length === 0)) return;
     try {
       const res = await fetch(`/api/tasks/${task._id}/comments`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          content: content.trim(),
-          mentions: [],
-          attachments: [],
+          content: data.content?.trim() || "",
+          mentions: data.mentions || [],
+          attachments: data.attachments || [],
           parentComment: parentCommentId,
         }),
       });
-      const data = await res.json();
-      if (!data.error) {
+      const responseData = await res.json();
+      if (!responseData.error) {
         // Real-time will handle adding to state
       }
     } catch (e) {
@@ -189,8 +189,8 @@ export default function TaskDetailModal({ task, onClose }) {
     }
   }
   
-  async function handleReply(parentCommentId, content) {
-    await addComment(content, parentCommentId);
+  async function handleReply(parentCommentId, content, mentions, attachments) {
+    await addComment({ content, mentions, attachments }, parentCommentId);
   }
   
   async function handleReact(commentId, emoji) {
@@ -211,7 +211,7 @@ export default function TaskDetailModal({ task, onClose }) {
       await fetch(`/api/comments/${commentId}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content: content.content || content }),
       });
       // Real-time will handle updating state
     } catch (e) {
@@ -406,12 +406,13 @@ export default function TaskDetailModal({ task, onClose }) {
           {activeTab === "comments" && (
             <ThreadedComments
               comments={comments}
-              onAddComment={(content) => addComment(content)}
+              onAddComment={addComment}
               onReply={handleReply}
               onReact={handleReact}
               onEdit={handleEditComment}
               onDelete={handleDeleteComment}
               currentUserId={currentUser?._id}
+              users={users}
             />
           )}
 

@@ -1,31 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import RichCommentEditor from "./rich-comment-editor";
 
 const EMOJI_OPTIONS = ["👍", "❤️", "😄", "🎉", "🚀", "👀", "🔥", "💯"];
 
-function Comment({ comment, onReply, onReact, onEdit, onDelete, currentUserId, depth = 0 }) {
+function Comment({ comment, onReply, onReact, onEdit, onDelete, currentUserId, depth = 0, users = [] }) {
   const [showReply, setShowReply] = useState(false);
-  const [replyText, setReplyText] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(comment.content);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   
   const isAuthor = comment.author?._id === currentUserId;
   const maxDepth = 3; // Maximum nesting level
   
-  async function handleReplySubmit(e) {
-    e.preventDefault();
-    if (!replyText.trim()) return;
-    await onReply(comment._id, replyText);
-    setReplyText("");
+  async function handleReplySubmit(data) {
+    await onReply(comment._id, data.content, data.mentions, data.attachments);
     setShowReply(false);
   }
   
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    if (!editText.trim()) return;
-    await onEdit(comment._id, editText);
+  async function handleEditSubmit(data) {
+    await onEdit(comment._id, data.content);
     setIsEditing(false);
   }
   
@@ -97,28 +93,20 @@ function Comment({ comment, onReply, onReact, onEdit, onDelete, currentUserId, d
           
           {/* Content or Edit Form */}
           {isEditing ? (
-            <form onSubmit={handleEditSubmit} className="space-y-2">
-              <textarea
-                value={editText}
-                onChange={(e) => setEditText(e.target.value)}
-                className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-sm"
-                rows={3}
+            <div className="mt-2">
+              <RichCommentEditor
+                initialValue={comment.content}
+                onSubmit={handleEditSubmit}
+                onCancel={() => setIsEditing(false)}
+                users={users}
+                placeholder="Edit comment..."
+                buttonText="Save"
               />
-              <div className="flex gap-2">
-                <button type="submit" className="text-xs bg-white text-black px-3 py-1 rounded">
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="text-xs bg-neutral-800 text-white px-3 py-1 rounded"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+            </div>
           ) : (
-            <p className="text-sm text-gray-300">{comment.content}</p>
+            <div className="prose prose-invert prose-sm max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{comment.content}</ReactMarkdown>
+            </div>
           )}
           
           {/* Mentions */}
@@ -209,27 +197,15 @@ function Comment({ comment, onReply, onReact, onEdit, onDelete, currentUserId, d
         
         {/* Reply Form */}
         {showReply && (
-          <form onSubmit={handleReplySubmit} className="mt-3 space-y-2">
-            <textarea
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
+          <div className="mt-3">
+            <RichCommentEditor
+              onSubmit={handleReplySubmit}
+              onCancel={() => setShowReply(false)}
+              users={users}
               placeholder="Write a reply..."
-              className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-sm"
-              rows={2}
+              buttonText="Reply"
             />
-            <div className="flex gap-2">
-              <button type="submit" className="text-xs bg-white text-black px-3 py-1 rounded">
-                Reply
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowReply(false)}
-                className="text-xs bg-neutral-800 text-white px-3 py-1 rounded"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+          </div>
         )}
       </div>
     </div>
@@ -244,8 +220,8 @@ export default function ThreadedComments({
   onEdit,
   onDelete,
   currentUserId,
+  users = [],
 }) {
-  const [newCommentText, setNewCommentText] = useState("");
   
   // Build comment tree
   const commentMap = {};
@@ -279,6 +255,7 @@ export default function ThreadedComments({
           onDelete={onDelete}
           currentUserId={currentUserId}
           depth={depth}
+          users={users}
         />
         {comment.replies && comment.replies.length > 0 && (
           <div className="space-y-4">
@@ -289,28 +266,15 @@ export default function ThreadedComments({
     );
   }
   
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!newCommentText.trim()) return;
-    await onAddComment(newCommentText);
-    setNewCommentText("");
-  }
-  
   return (
     <div className="space-y-4">
       {/* New Comment Form */}
-      <form onSubmit={handleSubmit} className="space-y-2">
-        <textarea
-          value={newCommentText}
-          onChange={(e) => setNewCommentText(e.target.value)}
-          placeholder="Write a comment..."
-          className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700"
-          rows={3}
-        />
-        <button type="submit" className="bg-white text-black px-4 py-2 rounded text-sm font-medium">
-          Post Comment
-        </button>
-      </form>
+      <RichCommentEditor
+        onSubmit={onAddComment}
+        users={users}
+        placeholder="Write a comment... (Markdown supported)"
+        buttonText="Post Comment"
+      />
       
       {/* Comments Thread */}
       <div className="space-y-6">
