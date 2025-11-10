@@ -202,9 +202,11 @@ function TaskCard({ task, onDragStart, onTaskClick, isDragging }) {
   );
 }
 
-function KanbanColumn({ status, tasks, onDrop, onDragOver, onTaskClick, isDragOver, draggedTask }) {
+function KanbanColumn({ status, tasks, onDrop, onDragOver, onTaskClick, isDragOver, draggedTask, wipLimit }) {
   const count = tasks.length;
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const isOverLimit = wipLimit > 0 && count > wipLimit;
+  const isNearLimit = wipLimit > 0 && count === wipLimit;
   
   return (
     <div
@@ -232,9 +234,20 @@ function KanbanColumn({ status, tasks, onDrop, onDragOver, onTaskClick, isDragOv
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`text-sm font-bold px-2.5 py-1 rounded-full ${status.color} text-white`}>
+            <span className={`text-sm font-bold px-2.5 py-1 rounded-full ${
+              isOverLimit ? "bg-red-600" : isNearLimit ? "bg-orange-600" : status.color
+            } text-white`}>
               {count}
             </span>
+            {wipLimit > 0 && (
+              <span className={`text-xs px-2 py-0.5 rounded ${
+                isOverLimit ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                isNearLimit ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" :
+                "bg-neutral-800 text-gray-400"
+              }`}>
+                / {wipLimit}
+              </span>
+            )}
           </div>
         </div>
         
@@ -301,6 +314,8 @@ export default function KanbanBoard({ tasks, onTaskClick, onTaskUpdate }) {
   const router = useRouter();
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
+  const [swimlaneBy, setSwimlaneBy] = useState("none"); // 'none', 'assignee', 'project'
+  const [wipLimits] = useState({ todo: 10, in_progress: 5, review: 5, completed: 0, blocked: 10 });
 
   function handleDragStart(e, task) {
     setDraggedTask(task);
@@ -324,6 +339,17 @@ export default function KanbanBoard({ tasks, onTaskClick, onTaskUpdate }) {
     if (!draggedTask || draggedTask.status === newStatus) {
       setDraggedTask(null);
       return;
+    }
+
+    // WIP limit check
+    const targetColumnTasks = tasksByStatus[newStatus] || [];
+    const wipLimit = wipLimits[newStatus];
+    if (wipLimit > 0 && targetColumnTasks.length >= wipLimit) {
+      const proceed = confirm(`⚠️ WIP Limit Warning\n\nColumn "${newStatus.replace("_", " ")}" has ${targetColumnTasks.length}/${wipLimit} tasks.\nProceed anyway?`);
+      if (!proceed) {
+        setDraggedTask(null);
+        return;
+      }
     }
 
     // Check if task is blocked and trying to move forward
@@ -371,9 +397,42 @@ export default function KanbanBoard({ tasks, onTaskClick, onTaskUpdate }) {
     <div className="space-y-6">
       {/* Board Header */}
       <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
-        <div>
-          <h2 className="text-xl font-bold text-white mb-1">📊 Kanban Board</h2>
-          <p className="text-sm text-gray-400">Drag and drop tasks to update their status</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-white mb-1">📊 Kanban Board</h2>
+            <p className="text-sm text-gray-400">Drag and drop tasks to update their status</p>
+          </div>
+          
+          {/* Swimlane Toggle */}
+          <div className="flex items-center gap-2 ml-6">
+            <span className="text-xs text-gray-500">Swimlanes:</span>
+            <div className="flex items-center gap-1 bg-neutral-900 rounded-lg p-1 border border-neutral-800">
+              <button
+                onClick={() => setSwimlaneBy("none")}
+                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                  swimlaneBy === "none" ? "bg-white text-black" : "text-gray-400 hover:text-white"
+                }`}
+              >
+                None
+              </button>
+              <button
+                onClick={() => setSwimlaneBy("assignee")}
+                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                  swimlaneBy === "assignee" ? "bg-white text-black" : "text-gray-400 hover:text-white"
+                }`}
+              >
+                👤 Assignee
+              </button>
+              <button
+                onClick={() => setSwimlaneBy("project")}
+                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                  swimlaneBy === "project" ? "bg-white text-black" : "text-gray-400 hover:text-white"
+                }`}
+              >
+                📁 Project
+              </button>
+            </div>
+          </div>
         </div>
         
         {/* Board Stats */}
@@ -411,6 +470,7 @@ export default function KanbanBoard({ tasks, onTaskClick, onTaskUpdate }) {
             onTaskClick={onTaskClick}
             isDragOver={dragOverColumn === status.id}
             draggedTask={draggedTask}
+            wipLimit={wipLimits[status.id]}
           />
         ))}
       </div>
