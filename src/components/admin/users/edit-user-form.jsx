@@ -32,7 +32,10 @@ const DESIGNATION_ROLES = [
   { value: "chief_operating_officer", label: "Chief Operating Officer" },
   { value: "chief_financial_officer", label: "Chief Financial Officer" },
   { value: "sales_representative", label: "Sales Representative" },
-  { value: "senior_sales_representative", label: "Senior Sales Representative" },
+  {
+    value: "senior_sales_representative",
+    label: "Senior Sales Representative",
+  },
   { value: "sales_manager", label: "Sales Manager" },
   { value: "director_of_sales", label: "Director of Sales" },
   { value: "vp_of_sales", label: "VP of Sales" },
@@ -44,7 +47,10 @@ const DESIGNATION_ROLES = [
   { value: "growth_hacker", label: "Growth Hacker" },
   { value: "hr_specialist", label: "HR Specialist" },
   { value: "hr_manager", label: "HR Manager" },
-  { value: "director_of_human_resources", label: "Director of Human Resources" },
+  {
+    value: "director_of_human_resources",
+    label: "Director of Human Resources",
+  },
   { value: "vp_of_human_resources", label: "VP of Human Resources" },
   { value: "recruiter", label: "Recruiter" },
   { value: "talent_acquisition_manager", label: "Talent Acquisition Manager" },
@@ -56,7 +62,10 @@ const DESIGNATION_ROLES = [
   { value: "ux_ui_designer", label: "UX/UI Designer" },
   { value: "graphic_designer", label: "Graphic Designer" },
   { value: "creative_director", label: "Creative Director" },
-  { value: "customer_support_specialist", label: "Customer Support Specialist" },
+  {
+    value: "customer_support_specialist",
+    label: "Customer Support Specialist",
+  },
   { value: "customer_success_manager", label: "Customer Success Manager" },
   { value: "technical_support_engineer", label: "Technical Support Engineer" },
   { value: "office_manager", label: "Office Manager" },
@@ -68,6 +77,21 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState(null);
+  const [success, setSuccess] = useState(false);
+
+  // Helper hook for auto-clearing messages
+  function useAutoClear(setter, delay = 5000) {
+    return (value) => {
+      setter(value);
+      if (value) {
+        setTimeout(() => setter(null), delay);
+      }
+    };
+  }
+
+  // Auto-clearing setters
+  const setErrorsWithAutoClear = useAutoClear(setErrors);
+  const setSuccessWithAutoClear = useAutoClear(setSuccess);
 
   const [form, setForm] = useState({
     username: user.username || "",
@@ -81,8 +105,12 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
       id: i,
       company: exp.company || "",
       title: exp.title || "",
-      startDate: exp.startDate ? new Date(exp.startDate).toISOString().slice(0, 10) : "",
-      endDate: exp.endDate ? new Date(exp.endDate).toISOString().slice(0, 10) : "",
+      startDate: exp.startDate
+        ? new Date(exp.startDate).toISOString().slice(0, 10)
+        : "",
+      endDate: exp.endDate
+        ? new Date(exp.endDate).toISOString().slice(0, 10)
+        : "",
       description: exp.description || "",
     })),
     social: {
@@ -111,9 +139,16 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
   const completion = useMemo(() => {
     let score = 0;
     let total = 5;
-    const skillsCount = (form.skills || "").split(",").map((s) => s.trim()).filter(Boolean).length;
+    const skillsCount = (form.skills || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean).length;
     if (skillsCount > 0) score += 1;
-    const hasExperience = Array.isArray(form.experience) && form.experience.some((e) => (e.company && e.company.trim()) || (e.title && e.title.trim()));
+    const hasExperience =
+      Array.isArray(form.experience) &&
+      form.experience.some(
+        (e) => (e.company && e.company.trim()) || (e.title && e.title.trim())
+      );
     if (hasExperience) score += 1;
     if (form.social?.linkedin || form.social?.github) score += 1;
     if (form.designation) score += 1;
@@ -139,14 +174,23 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
         department: form.department || undefined,
         team: form.team || undefined,
         profile: {
-          skills: form.skills ? form.skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
+          skills: form.skills
+            ? form.skills
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : [],
           experience: form.experience
             .filter((exp) => exp.company || exp.title)
             .map((exp) => ({
               company: exp.company || undefined,
               title: exp.title || undefined,
-              startDate: exp.startDate ? new Date(exp.startDate).toISOString() : undefined,
-              endDate: exp.endDate ? new Date(exp.endDate).toISOString() : undefined,
+              startDate: exp.startDate
+                ? new Date(exp.startDate).toISOString()
+                : undefined,
+              endDate: exp.endDate
+                ? new Date(exp.endDate).toISOString()
+                : undefined,
               description: exp.description || undefined,
             })),
           social: {
@@ -169,14 +213,32 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({
+        error: true,
+        message: `Server returned ${res.status} ${res.statusText}`,
+      }));
       if (!res.ok || data.error) {
-        setErrors(data.message || data);
+        setErrorsWithAutoClear(data.message || data);
+        setSuccess(false);
         return;
       }
+      setSuccessWithAutoClear(true);
+      setErrors(null);
       router.refresh();
     } catch (e) {
-      setErrors({ global: "Unexpected error" });
+      console.error("Error saving user:", e);
+      let errorMessage =
+        "Network error - please check your connection and try again";
+
+      if (e.name === "TypeError" && e.message.includes("fetch")) {
+        errorMessage =
+          "Cannot connect to server - please check your internet connection";
+      } else if (e.message) {
+        errorMessage = e.message;
+      }
+
+      setErrorsWithAutoClear({ global: errorMessage });
+      setSuccess(false);
     } finally {
       setLoading(false);
     }
@@ -189,52 +251,100 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
           {typeof errors === "string" ? errors : JSON.stringify(errors)}
         </div>
       )}
+      {success && (
+        <div className="p-3 bg-green-600 text-white rounded">
+          ✅ Changes saved successfully!
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm mb-1">Username</label>
-          <input name="username" value={form.username} onChange={onChange} className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800" required />
+          <input
+            name="username"
+            value={form.username}
+            onChange={onChange}
+            className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
+            required
+          />
         </div>
         <div>
           <label className="block text-sm mb-1">Email</label>
-          <input type="email" name="email" value={form.email} onChange={onChange} className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800" required />
+          <input
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={onChange}
+            className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
+            required
+          />
         </div>
         <div>
           <label className="block text-sm mb-1">Designation</label>
-          <select name="designation" value={form.designation} onChange={onChange} className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800">
+          <select
+            name="designation"
+            value={form.designation}
+            onChange={onChange}
+            className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
+          >
             <option value="">Select Your Role</option>
             {DESIGNATION_ROLES.map((role) => (
-              <option key={role.value} value={role.value}>{role.label}</option>
+              <option key={role.value} value={role.value}>
+                {role.label}
+              </option>
             ))}
           </select>
         </div>
         <div>
           <label className="block text-sm mb-1">Employment Type</label>
-          <select name="employmentType" value={form.employmentType} onChange={onChange} className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800">
+          <select
+            name="employmentType"
+            value={form.employmentType}
+            onChange={onChange}
+            className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
+          >
             <option value="">Select</option>
             {EMPLOYMENT_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
             ))}
           </select>
         </div>
         <div>
           <label className="block text-sm mb-1">Department</label>
-          <select name="department" value={form.department} onChange={(e)=>{
-            const v = e.target.value;
-            setForm((f)=> ({...f, department: v, team: ''}));
-          }} className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800">
+          <select
+            name="department"
+            value={form.department}
+            onChange={(e) => {
+              const v = e.target.value;
+              setForm((f) => ({ ...f, department: v, team: "" }));
+            }}
+            className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
+          >
             <option value="">Unassigned</option>
-            {departments.map((d)=> (
-              <option key={d._id} value={d._id}>{d.name}</option>
+            {departments.map((d) => (
+              <option key={d._id} value={d._id}>
+                {d.name}
+              </option>
             ))}
           </select>
         </div>
         <div>
           <label className="block text-sm mb-1">Team</label>
-          <select name="team" value={form.team} onChange={onChange} disabled={!form.department} className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed">
+          <select
+            name="team"
+            value={form.team}
+            onChange={onChange}
+            disabled={!form.department}
+            className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <option value="">Unassigned</option>
-            {(teamsByDept[form.department || ""] || []).map((t)=> (
-              <option key={t._id} value={t._id}>{t.name}{t.department?.name ? ` (${t.department.name})` : ''}</option>
+            {(teamsByDept[form.department || ""] || []).map((t) => (
+              <option key={t._id} value={t._id}>
+                {t.name}
+                {t.department?.name ? ` (${t.department.name})` : ""}
+              </option>
             ))}
           </select>
         </div>
@@ -242,28 +352,80 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
           <label className="block text-sm mb-1">Profile Completion</label>
           <div className="mt-1">
             <div className="w-full bg-neutral-900 border border-neutral-800 rounded-full h-2 overflow-hidden">
-              <div className="bg-green-600 h-2" style={{ width: `${completion}%` }} />
+              <div
+                className="bg-green-600 h-2"
+                style={{ width: `${completion}%` }}
+              />
             </div>
-            <div className="text-xs text-gray-400 mt-1">{completion}% complete</div>
+            <div className="text-xs text-gray-400 mt-1">
+              {completion}% complete
+            </div>
             <ul className="mt-2 text-xs space-y-1">
-              <li className={((form.skills || "").trim() ? "text-green-400" : "text-gray-400")}>• Add at least 1 skill</li>
-              <li className={(Array.isArray(form.experience) && form.experience.some((e)=> (e.company && e.company.trim()) || (e.title && e.title.trim())) ? "text-green-400" : "text-gray-400")}>• Add an experience entry</li>
-              <li className={((form.social?.linkedin || form.social?.github) ? "text-green-400" : "text-gray-400")}>• Add LinkedIn or GitHub</li>
-              <li className={(form.designation ? "text-green-400" : "text-gray-400")}>• Choose a designation</li>
-              <li className={(form.department ? "text-green-400" : "text-gray-400")}>• Select a department</li>
+              <li
+                className={
+                  (form.skills || "").trim()
+                    ? "text-green-400"
+                    : "text-gray-400"
+                }
+              >
+                • Add at least 1 skill
+              </li>
+              <li
+                className={
+                  Array.isArray(form.experience) &&
+                  form.experience.some(
+                    (e) =>
+                      (e.company && e.company.trim()) ||
+                      (e.title && e.title.trim())
+                  )
+                    ? "text-green-400"
+                    : "text-gray-400"
+                }
+              >
+                • Add an experience entry
+              </li>
+              <li
+                className={
+                  form.social?.linkedin || form.social?.github
+                    ? "text-green-400"
+                    : "text-gray-400"
+                }
+              >
+                • Add LinkedIn or GitHub
+              </li>
+              <li
+                className={
+                  form.designation ? "text-green-400" : "text-gray-400"
+                }
+              >
+                • Choose a designation
+              </li>
+              <li
+                className={form.department ? "text-green-400" : "text-gray-400"}
+              >
+                • Select a department
+              </li>
             </ul>
           </div>
         </div>
         <div>
           <label className="block text-sm mb-1">Skills (comma separated)</label>
-          <input name="skills" value={form.skills} onChange={onChange} className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800" />
+          <input
+            name="skills"
+            value={form.skills}
+            onChange={onChange}
+            className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
+          />
         </div>
       </div>
 
       <div className="border-t border-neutral-800 pt-4 mt-4">
         <h3 className="text-lg mb-3">Experience</h3>
         {form.experience.map((exp, i) => (
-          <div key={exp.id} className="mb-4 p-3 border border-neutral-700 rounded">
+          <div
+            key={exp.id}
+            className="mb-4 p-3 border border-neutral-700 rounded"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
               <input
                 placeholder="Company"
@@ -362,7 +524,12 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
             <label className="block text-sm mb-1">LinkedIn</label>
             <input
               value={form.social.linkedin}
-              onChange={(e) => setForm({ ...form, social: { ...form.social, linkedin: e.target.value } })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  social: { ...form.social, linkedin: e.target.value },
+                })
+              }
               className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
             />
           </div>
@@ -370,7 +537,12 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
             <label className="block text-sm mb-1">GitHub</label>
             <input
               value={form.social.github}
-              onChange={(e) => setForm({ ...form, social: { ...form.social, github: e.target.value } })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  social: { ...form.social, github: e.target.value },
+                })
+              }
               className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
             />
           </div>
@@ -378,7 +550,12 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
             <label className="block text-sm mb-1">Twitter</label>
             <input
               value={form.social.twitter}
-              onChange={(e) => setForm({ ...form, social: { ...form.social, twitter: e.target.value } })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  social: { ...form.social, twitter: e.target.value },
+                })
+              }
               className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
             />
           </div>
@@ -386,7 +563,12 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
             <label className="block text-sm mb-1">Website</label>
             <input
               value={form.social.website}
-              onChange={(e) => setForm({ ...form, social: { ...form.social, website: e.target.value } })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  social: { ...form.social, website: e.target.value },
+                })
+              }
               className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
             />
           </div>
@@ -401,7 +583,15 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
             <input
               type="number"
               value={form.performance.tasksCompleted}
-              onChange={(e) => setForm({ ...form, performance: { ...form.performance, tasksCompleted: Number(e.target.value) || 0 } })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  performance: {
+                    ...form.performance,
+                    tasksCompleted: Number(e.target.value) || 0,
+                  },
+                })
+              }
               className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
             />
           </div>
@@ -412,7 +602,15 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
               min={0}
               max={100}
               value={form.performance.onTimeRate}
-              onChange={(e) => setForm({ ...form, performance: { ...form.performance, onTimeRate: Number(e.target.value) || 0 } })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  performance: {
+                    ...form.performance,
+                    onTimeRate: Number(e.target.value) || 0,
+                  },
+                })
+              }
               className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
             />
           </div>
@@ -422,7 +620,15 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
               type="number"
               step={0.1}
               value={form.performance.velocity}
-              onChange={(e) => setForm({ ...form, performance: { ...form.performance, velocity: Number(e.target.value) || 0 } })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  performance: {
+                    ...form.performance,
+                    velocity: Number(e.target.value) || 0,
+                  },
+                })
+              }
               className="w-full px-3 py-2 rounded bg-neutral-900 border border-neutral-800"
             />
           </div>
@@ -430,7 +636,10 @@ export default function EditUserForm({ user, departments = [], teams = [] }) {
       </div>
 
       <div className="pt-2">
-        <button disabled={loading} className="bg-white text-black px-4 py-2 rounded">
+        <button
+          disabled={loading}
+          className="bg-white text-black px-4 py-2 rounded"
+        >
           {loading ? "Saving..." : "Save Changes"}
         </button>
       </div>

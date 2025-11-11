@@ -1,29 +1,17 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
 import connectToDatabase from "@/lib/db/mongodb";
 import Task from "@/models/Task";
 import Project from "@/models/Project";
 import User from "@/models/User";
 import DashboardClient from "@/components/admin/dashboard/dashboard-client";
+import { serializeForClient } from "@/lib/utils/serialize";
+import { getAuthUser } from "@/lib/auth/guard";
 
 export default async function DashboardPage() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token");
-  if (!token) redirect("/login");
-
-  let userId;
-  try {
-    const decoded = jwt.verify(token.value, process.env.JWT_SECRET);
-    userId = decoded.userId;
-  } catch {
-    redirect("/login");
-  }
+  const user = await getAuthUser();
+  if (!user) redirect("/auth/login");
 
   await connectToDatabase();
-
-  const user = await User.findById(userId).select("username email roles").lean();
-  if (!user) redirect("/login");
 
   const [tasks, projects, users] = await Promise.all([
     Task.find({})
@@ -97,8 +85,8 @@ export default async function DashboardPage() {
       statusDistribution={statusDist}
       priorityDistribution={priorityDist}
       teamWorkload={teamWorkload}
-      upcomingDeadlines={JSON.parse(JSON.stringify(upcomingDeadlines))}
-      currentUser={JSON.parse(JSON.stringify(user))}
+      upcomingDeadlines={serializeForClient(upcomingDeadlines)}
+      currentUser={serializeForClient(user)}
     />
   );
 }

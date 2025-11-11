@@ -30,11 +30,13 @@ const FileAssetSchema = new mongoose.Schema(
     // Organization
     tags: [String],
     folder: String, // Cloudinary folder path
+    fileFolder: { type: mongoose.Schema.Types.ObjectId, ref: "FileFolder", index: true }, // Custom folder organization
     description: String,
     
     // Access control
     visibility: { type: String, enum: ["public", "private", "team", "project"], default: "project" },
     aclRoles: [{ type: String, enum: ["admin", "hr", "manager", "employee", "viewer"] }],
+    allowedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Specific users with access
     
     // Status
     isArchived: { type: Boolean, default: false, index: true },

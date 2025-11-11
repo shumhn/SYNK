@@ -25,7 +25,27 @@ export async function GET(request, { params }) {
     }
 
     // Check access permissions
-    // TODO: Implement role-based access control based on file.visibility and file.aclRoles
+    if (!user.roles?.includes("admin")) {
+      // Private files only accessible to owner
+      if (file.visibility === "private" && file.uploadedBy._id.toString() !== user._id.toString()) {
+        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      }
+
+      // Check allowedUsers list
+      if (file.allowedUsers?.length > 0) {
+        if (!file.allowedUsers.some((u) => u.toString() === user._id.toString())) {
+          return NextResponse.json({ error: "Access denied" }, { status: 403 });
+        }
+      }
+
+      // Check role-based access
+      if (file.aclRoles?.length > 0) {
+        const hasRole = user.roles?.some((role) => file.aclRoles.includes(role));
+        if (!hasRole) {
+          return NextResponse.json({ error: "Access denied" }, { status: 403 });
+        }
+      }
+    }
 
     return NextResponse.json(file);
   } catch (error) {
@@ -64,13 +84,15 @@ export async function PATCH(request, { params }) {
     }
 
     const body = await request.json();
-    const { tags, description, visibility, aclRoles } = body;
+    const { tags, description, visibility, aclRoles, allowedUsers, fileFolder } = body;
 
     // Update allowed fields
     if (tags !== undefined) file.tags = tags;
     if (description !== undefined) file.description = description;
     if (visibility !== undefined) file.visibility = visibility;
     if (aclRoles !== undefined) file.aclRoles = aclRoles;
+    if (allowedUsers !== undefined) file.allowedUsers = allowedUsers;
+    if (fileFolder !== undefined) file.fileFolder = fileFolder;
 
     await file.save();
 
@@ -90,12 +112,12 @@ export async function PATCH(request, { params }) {
  */
 export async function DELETE(request, { params }) {
   try {
-    const authResult = await verifyAuth(request);
-    if (!authResult.authenticated) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
+    await connectToDatabase();
 
     const file = await FileAsset.findById(params.id);
     if (!file) {
@@ -104,8 +126,8 @@ export async function DELETE(request, { params }) {
 
     // Check if user has permission to delete (owner or admin)
     if (
-      file.uploadedBy.toString() !== authResult.user.id &&
-      !authResult.user.roles?.includes("admin")
+      file.uploadedBy.toString() !== String(user._id) &&
+      !(user.roles || []).includes("admin")
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

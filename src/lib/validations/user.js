@@ -97,6 +97,14 @@ export const CreateUserSchema = z.object({
       completion: z.number().min(0).max(100).optional(),
     })
     .optional(),
+  performance: z
+    .object({
+      tasksCompleted: z.number().min(0).optional(),
+      onTimeRate: z.number().min(0).max(100).optional(),
+      velocity: z.number().min(0).optional(),
+      lastUpdatedAt: z.string().datetime().optional(),
+    })
+    .optional(),
 }).strict();
 
 export const UpdateUserSchema = CreateUserSchema.partial().strict();

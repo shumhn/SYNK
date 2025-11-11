@@ -2,6 +2,7 @@ import connectToDatabase from "@/lib/db/mongodb";
 import TaskTemplate from "@/models/TaskTemplate";
 import TemplateForm from "@/components/admin/templates/template-form";
 import EditTemplateModal from "@/components/admin/templates/edit-template-modal";
+import { serializeForClient } from "@/lib/utils/serialize";
 
 export default async function TemplatesPage() {
   await connectToDatabase();
@@ -21,8 +22,7 @@ export default async function TemplatesPage() {
 
       <div className="space-y-3">
         {templates.map((t) => (
-          /* @ts-expect-error Server to Client */
-          <EditTemplateModal key={t._id} template={JSON.parse(JSON.stringify(t))} />
+          <EditTemplateModal key={t._id} template={serializeForClient(t)} />
         ))}
         {templates.length === 0 && (
           <div className="p-8 text-center text-gray-400 border border-neutral-800 rounded">No templates yet.</div>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import DepartmentSettingsForm from "@/components/admin/departments/department-settings-form";
 import DepartmentKpisForm from "@/components/admin/departments/department-kpis-form";
 import DepartmentMergeForm from "@/components/admin/departments/department-merge-form";
+import { serializeForClient } from "@/lib/utils/serialize";
 import { notFound } from "next/navigation";
 
 function Card({ title, children }) {
@@ -57,7 +58,7 @@ export default async function DepartmentDetailPage({ params }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <Card title="Settings">
-            <DepartmentSettingsForm department={JSON.parse(JSON.stringify(dep))} members={JSON.parse(JSON.stringify(members))} otherDepartments={JSON.parse(JSON.stringify(otherDepartments))} />
+            <DepartmentSettingsForm department={serializeForClient(dep)} members={serializeForClient(members)} otherDepartments={serializeForClient(otherDepartments)} />
           </Card>
 
           <Card title="KPIs">
@@ -87,7 +88,7 @@ export default async function DepartmentDetailPage({ params }) {
         </div>
         <div className="space-y-6">
           <Card title="Merge Department">
-            <DepartmentMergeForm sourceId={dep._id.toString()} departments={JSON.parse(JSON.stringify(otherDepartments))} />
+            <DepartmentMergeForm sourceId={dep._id.toString()} departments={serializeForClient(otherDepartments)} />
           </Card>
 
           <Card title="Org Chart">

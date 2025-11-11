@@ -9,6 +9,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import PerformanceTrends from "@/components/admin/users/performance-trends";
 import DeleteUserButton from "@/components/admin/users/delete-user-button";
+import { serializeForClient } from "@/lib/utils/serialize";
 
 export default async function AdminUserDetailPage({ params }) {
   const { id } = await params;
@@ -20,12 +21,17 @@ export default async function AdminUserDetailPage({ params }) {
     Team.find().select("name department").populate("department", "name").sort({ name: 1 }).lean(),
   ]);
 
+  // Serialize all data for client components
+  const serializedUser = serializeForClient(user);
+  const serializedDepartments = serializeForClient(departments);
+  const serializedTeams = serializeForClient(teams);
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">User: {user.username}</h1>
+        <h1 className="text-xl font-semibold">User: {serializedUser.username}</h1>
         <div className="flex items-center gap-3">
-          <DeleteUserButton userId={user._id.toString()} />
+          <DeleteUserButton userId={serializedUser._id} />
           <Link href="/admin/users" className="underline">Back</Link>
         </div>
       </div>
@@ -34,21 +40,21 @@ export default async function AdminUserDetailPage({ params }) {
         <div className="lg:col-span-2 space-y-6">
           <div className="p-4 rounded border border-neutral-800">
             <h2 className="font-semibold mb-4">Profile</h2>
-            <EditUserForm user={JSON.parse(JSON.stringify(user))} departments={departments} teams={teams} />
+            <EditUserForm user={serializedUser} departments={serializedDepartments} teams={serializedTeams} />
           </div>
 
           <div className="p-4 rounded border border-neutral-800">
             <h2 className="font-semibold mb-4">Sessions</h2>
-            <SessionsPanel userId={user._id.toString()} />
+            <SessionsPanel userId={serializedUser._id} />
           </div>
         </div>
         <div className="space-y-6">
           <div className="p-4 rounded border border-neutral-800">
             <h2 className="font-semibold mb-4">Roles & Permissions</h2>
-            <RolesForm userId={user._id.toString()} roles={user.roles || []} permissions={user.permissions || []} />
+            <RolesForm userId={serializedUser._id} roles={serializedUser.roles || []} permissions={serializedUser.permissions || []} />
           </div>
           <div className="p-4 rounded border border-neutral-800">
-            <PerformanceTrends userId={user._id.toString()} />
+            <PerformanceTrends userId={serializedUser._id} />
           </div>
         </div>
       </div>

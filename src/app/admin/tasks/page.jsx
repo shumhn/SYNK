@@ -4,6 +4,7 @@ import Project from "@/models/Project";
 import User from "@/models/User";
 import TaskType from "@/models/TaskType";
 import TasksView from "@/components/admin/tasks/tasks-view";
+import { serializeForClient } from "@/lib/utils/serialize";
 
 export default async function TasksPage({ searchParams }) {
   await connectToDatabase();
@@ -54,10 +55,10 @@ export default async function TasksPage({ searchParams }) {
       </div>
       
       <TasksView
-        initialTasks={JSON.parse(JSON.stringify(tasks))}
-        projects={JSON.parse(JSON.stringify(projects))}
-        users={JSON.parse(JSON.stringify(users))}
-        taskTypes={JSON.parse(JSON.stringify(taskTypes))}
+        initialTasks={serializeForClient(tasks)}
+        projects={serializeForClient(projects)}
+        users={serializeForClient(users)}
+        taskTypes={serializeForClient(taskTypes)}
         filters={{ q, status, priority, taskType, assignee, project, sortBy, sortOrder }}
       />
     </div>

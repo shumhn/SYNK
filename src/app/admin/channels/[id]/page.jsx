@@ -1,4 +1,5 @@
-import ProjectChat from "@/components/chat/project-chat";
+import ChannelChat from "@/components/admin/channels/channel-chat";
+import { serializeForClient } from "@/lib/utils/serialize";
 import connectToDatabase from "@/lib/db/mongodb";
 import Channel from "@/models/Channel";
 
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 async function getChannel(id) {
   await connectToDatabase();
   const ch = await Channel.findById(id).lean();
-  return ch ? JSON.parse(JSON.stringify(ch)) : null;
+  return ch ? serializeForClient(ch) : null;
 }
 
 export default async function ChannelChatPage({ params }) {

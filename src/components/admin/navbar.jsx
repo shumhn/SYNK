@@ -22,12 +22,19 @@ export default function AdminNavbar() {
     if (!session?.user?.id) return;
     try {
       const res = await fetch(`/api/users/${session.user.id}`);
+      if (!res.ok) {
+        console.warn("Failed to fetch user data:", res.status, res.statusText);
+        return;
+      }
       const data = await res.json();
       if (!data.error) {
         setCurrentUser(data.data);
+      } else {
+        console.warn("API returned error:", data.message);
       }
     } catch (error) {
       console.error("Error fetching current user:", error);
+      // Don't set currentUser to null, just log the error
     }
   }
 
@@ -58,6 +65,7 @@ export default function AdminNavbar() {
           <Link href="/admin/templates" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/templates") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Templates</Link>
           <Link href="/admin/messages" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/messages") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Messages</Link>
           <Link href="/admin/channels" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/channels") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Channels</Link>
+          <Link href="/admin/files" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/files") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Files</Link>
           <Link href="/admin/settings/task-types" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/settings/task-types") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Task Types</Link>
           <Link href="/admin/settings" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/settings") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Settings</Link>
         </div>
@@ -96,9 +104,9 @@ export default function AdminNavbar() {
                 <div className="p-4 border-b border-neutral-800">
                   <p className="font-semibold text-white">{session?.user?.name || currentUser?.username}</p>
                   <p className="text-sm text-gray-400">{session?.user?.email || currentUser?.email}</p>
-                  {currentUser?.roles && currentUser.roles.length > 0 && (
+                  {(currentUser?.roles || session?.user?.roles) && (currentUser?.roles || session?.user?.roles).length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {currentUser.roles.map((role) => (
+                      {(currentUser?.roles || session?.user?.roles || []).map((role) => (
                         <span key={role} className="px-2 py-1 text-xs bg-blue-600 text-white rounded-full">
                           {role}
                         </span>

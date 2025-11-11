@@ -11,6 +11,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ProjectTabs from "@/components/admin/projects/project-tabs";
 import ProjectActions from "@/components/admin/projects/project-actions";
+import { serializeForClient } from "@/lib/utils/serialize";
 
 function StatusBadge({ status }) {
   const colors = {
@@ -66,14 +67,14 @@ export default async function ProjectDetailPage({ params, searchParams }) {
       
       <ProjectTabs
         tab={tab}
-        project={JSON.parse(JSON.stringify(project))}
-        milestones={JSON.parse(JSON.stringify(milestones))}
-        phases={JSON.parse(JSON.stringify(phases))}
-        objectives={JSON.parse(JSON.stringify(objectives))}
-        tasks={JSON.parse(JSON.stringify(tasks))}
-        allDepartments={JSON.parse(JSON.stringify(allDepartments))}
-        allUsers={JSON.parse(JSON.stringify(allUsers))}
-        taskTypes={JSON.parse(JSON.stringify(taskTypes))}
+        project={serializeForClient(project)}
+        milestones={serializeForClient(milestones)}
+        phases={serializeForClient(phases)}
+        objectives={serializeForClient(objectives)}
+        tasks={serializeForClient(tasks)}
+        allDepartments={serializeForClient(allDepartments)}
+        allUsers={serializeForClient(allUsers)}
+        taskTypes={serializeForClient(taskTypes)}
       />
     </div>
   );

@@ -3,6 +3,7 @@ import Project from "@/models/Project";
 import Department from "@/models/Department";
 import User from "@/models/User";
 import ProjectsListClient from "@/components/admin/projects/projects-list-client";
+import { serializeForClient } from "@/lib/utils/serialize";
 
 export default async function ProjectsListPage({ searchParams }) {
   await connectToDatabase();
@@ -42,9 +43,9 @@ export default async function ProjectsListPage({ searchParams }) {
 
   return (
     <ProjectsListClient
-      projects={JSON.parse(JSON.stringify(projects))}
-      departments={JSON.parse(JSON.stringify(departments))}
-      managers={JSON.parse(JSON.stringify(managers))}
+      projects={serializeForClient(projects)}
+      departments={serializeForClient(departments)}
+      managers={serializeForClient(managers)}
       filters={{ q, status, department, manager, sortBy, sortOrder: sortOrder === 1 ? "asc" : "desc", showArchived }}
     />
   );

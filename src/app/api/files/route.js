@@ -38,8 +38,11 @@ export async function POST(request) {
       comment,
       tags,
       folder,
+      fileFolder,
       description,
       visibility,
+      aclRoles,
+      allowedUsers,
       cloudinaryMetadata,
     } = body;
 
@@ -97,8 +100,11 @@ export async function POST(request) {
       isLatestVersion: true,
       tags: tags || [],
       folder,
+      fileFolder,
       description,
       visibility: visibility || "project",
+      aclRoles: aclRoles || [],
+      allowedUsers: allowedUsers || [],
       checksum: cloudinaryMetadata?.etag,
       etag: cloudinaryMetadata?.etag,
       cloudinaryMetadata,
