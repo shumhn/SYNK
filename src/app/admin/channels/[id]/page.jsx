@@ -35,7 +35,7 @@ export default async function ChannelChatPage({ params }) {
       </div>
 
       <div className="h-[70vh] border border-neutral-800 rounded">
-        <ProjectChat channelId={channel._id} />
+        <ChannelChat channelId={channel._id} />
       </div>
     </div>
   );
