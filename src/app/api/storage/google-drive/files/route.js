@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/guard";
 import connectToDatabase from "@/lib/db/mongodb";
 import ExternalStorageAccount from "@/models/ExternalStorageAccount";
+import { generateUploadSignature } from "@/lib/cloudinary";
 
 /**
  * GET /api/storage/google-drive/files
@@ -48,12 +49,21 @@ export async function GET(request) {
     apiUrl.searchParams.set("pageSize", "50");
     if (pageToken) apiUrl.searchParams.set("pageToken", pageToken);
 
-    const response = await fetch(apiUrl.toString(), {
+    let response = await fetch(apiUrl.toString(), {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
+    // If 401, try refreshing token and retry once
+    if (response.status === 401) {
+      await refreshGoogleToken(account);
+      const newAccessToken = account.getAccessToken();
+      response = await fetch(apiUrl.toString(), {
+        headers: { Authorization: `Bearer ${newAccessToken}` },
+      });
+    }
+
     if (!response.ok) {
-      throw new Error("Failed to fetch files from Google Drive");
+      throw new Error(`Failed to fetch files from Google Drive: ${response.status}`);
     }
 
     const data = await response.json();
@@ -117,30 +127,53 @@ export async function POST(request) {
 
     const accessToken = account.getAccessToken();
 
-    // Get file metadata
-    const metadataResponse = await fetch(
+    // Get file metadata with retry on 401
+    let metadataResponse = await fetch(
       `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType,size,modifiedTime`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
     );
 
+    if (metadataResponse.status === 401) {
+      await refreshGoogleToken(account);
+      const newAccessToken = account.getAccessToken();
+      metadataResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType,size,modifiedTime`,
+        {
+          headers: { Authorization: `Bearer ${newAccessToken}` },
+        }
+      );
+    }
+
     if (!metadataResponse.ok) {
-      throw new Error("Failed to fetch file metadata");
+      throw new Error(`Failed to fetch file metadata: ${metadataResponse.status}`);
     }
 
     const metadata = await metadataResponse.json();
 
-    // Download file content
-    const downloadResponse = await fetch(
+    // Download file content with retry on 401
+    const finalAccessToken = account.getAccessToken(); // Use potentially refreshed token
+    let downloadResponse = await fetch(
       `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
       {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: `Bearer ${finalAccessToken}` },
       }
     );
 
+    if (downloadResponse.status === 401) {
+      await refreshGoogleToken(account);
+      const newAccessToken = account.getAccessToken();
+      downloadResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+        {
+          headers: { Authorization: `Bearer ${newAccessToken}` },
+        }
+      );
+    }
+
     if (!downloadResponse.ok) {
-      throw new Error("Failed to download file from Google Drive");
+      throw new Error(`Failed to download file from Google Drive: ${downloadResponse.status}`);
     }
 
     const fileBuffer = await downloadResponse.arrayBuffer();
@@ -189,13 +222,13 @@ async function refreshGoogleToken(account) {
 
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
       client_id: process.env.GOOGLE_DRIVE_CLIENT_ID,
       client_secret: process.env.GOOGLE_DRIVE_CLIENT_SECRET,
       refresh_token: refreshToken,
       grant_type: "refresh_token",
-    }),
+    }).toString(),
   });
 
   if (!response.ok) {
@@ -211,30 +244,22 @@ async function refreshGoogleToken(account) {
 }
 
 async function uploadToCloudinary(blob, filename, mimeType) {
-  // Get upload signature
-  const sigResponse = await fetch("/api/uploads/cloudinary/sign", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ folder: "imported" }),
-  });
-
-  const sig = await sigResponse.json();
-  if (sig.error) throw new Error("Failed to get Cloudinary signature");
-
-  const { cloudName, apiKey, timestamp, signature, folder } = sig.data;
+  // Generate upload signature using server-side utility (no session dependency)
+  const sig = generateUploadSignature({ folder: "imported" });
 
   // Upload file
   const formData = new FormData();
   formData.append("file", blob, filename);
-  formData.append("api_key", apiKey);
-  formData.append("timestamp", String(timestamp));
-  if (folder) formData.append("folder", folder);
-  formData.append("signature", signature);
+  formData.append("api_key", sig.apiKey);
+  formData.append("timestamp", String(sig.timestamp));
+  if (sig.folder) formData.append("folder", sig.folder);
+  if (sig.uploadPreset) formData.append("upload_preset", sig.uploadPreset);
+  formData.append("signature", sig.signature);
 
-  const uploadResponse = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
-    { method: "POST", body: formData }
-  );
+  const uploadResponse = await fetch(sig.uploadUrl, {
+    method: "POST",
+    body: formData,
+  });
 
   if (!uploadResponse.ok) throw new Error("Cloudinary upload failed");
 
