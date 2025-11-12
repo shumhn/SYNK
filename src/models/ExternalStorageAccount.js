@@ -47,18 +47,25 @@ function encrypt(text) {
 
 // Pre-save hook to encrypt tokens
 ExternalStorageAccountSchema.pre("save", function (next) {
-  if (this.isModified("accessToken") && this.accessToken) {
-    // Only encrypt if not already encrypted
-    if (!this.accessToken.includes(":")) {
-      this.accessToken = encrypt(this.accessToken);
+  try {
+    if (this.isModified("accessToken") && this.accessToken) {
+      // Only encrypt if clearly plaintext (no ":", and reasonable length for a token)
+      if (!this.accessToken.includes(":") && this.accessToken.length > 10) {
+        this.accessToken = encrypt(this.accessToken);
+      }
     }
-  }
-  if (this.isModified("refreshToken") && this.refreshToken) {
-    if (!this.refreshToken.includes(":")) {
-      this.refreshToken = encrypt(this.refreshToken);
+    if (this.isModified("refreshToken") && this.refreshToken) {
+      // Only encrypt if clearly plaintext (no ":", and reasonable length for a token)
+      if (!this.refreshToken.includes(":") && this.refreshToken.length > 10) {
+        this.refreshToken = encrypt(this.refreshToken);
+      }
     }
+    next();
+  } catch (error) {
+    console.error("Error in token encryption pre-save hook:", error);
+    // Don't fail the save, just log the error
+    next();
   }
-  next();
 });
 
 // Method to get decrypted access token (backward compatible if plaintext)
