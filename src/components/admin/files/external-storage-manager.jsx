@@ -101,7 +101,7 @@ export default function ExternalStorageManager({ onClose, onImportFile }) {
     }
   }
 
-  async function browseProvider(provider) {
+  async function browseProvider(provider, folderId = null) {
     setSelectedProvider(provider);
     setLoadingFiles(true);
     try {
@@ -110,7 +110,10 @@ export default function ExternalStorageManager({ onClose, onImportFile }) {
           ? "/api/storage/google-drive/files"
           : "/api/storage/dropbox/files";
 
-      const res = await fetch(endpoint);
+      const url = new URL(endpoint, window.location.origin);
+      if (folderId) url.searchParams.set("folderId", folderId);
+
+      const res = await fetch(url.toString());
       const data = await res.json();
       if (data.error) {
         alert(data.error);
@@ -353,7 +356,10 @@ export default function ExternalStorageManager({ onClose, onImportFile }) {
                   {files.map((file) => (
                     <div
                       key={file.id}
-                      className="flex items-center justify-between p-3 border border-neutral-800 rounded-lg hover:border-neutral-700"
+                      className={`flex items-center justify-between p-3 border border-neutral-800 rounded-lg hover:border-neutral-700 ${
+                        file.mimeType?.includes("folder") ? "cursor-pointer" : ""
+                      }`}
+                      onClick={file.mimeType?.includes("folder") ? () => browseProvider(selectedProvider, file.id) : undefined}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="text-2xl">
@@ -372,7 +378,10 @@ export default function ExternalStorageManager({ onClose, onImportFile }) {
                       </div>
                       {!file.mimeType?.includes("folder") && (
                         <button
-                          onClick={() => importFile(file)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            importFile(file);
+                          }}
                           disabled={importing === file.id}
                           className="px-3 py-1.5 bg-white text-black rounded text-sm font-medium hover:bg-gray-200 disabled:opacity-50"
                         >
