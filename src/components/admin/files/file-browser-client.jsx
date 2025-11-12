@@ -724,3 +724,7 @@ export default function FileBrowserClient({ initialFiles, currentUser, paginatio
           }}
         />
       )}
+
+    </div>
+  );
+}
