@@ -139,6 +139,14 @@ export async function GET(request) {
     const uploadedBy = searchParams.get("uploadedBy");
     const resourceType = searchParams.get("resourceType");
     const isArchived = searchParams.get("isArchived") === "true";
+    const search = searchParams.get("q"); // Full-text search query
+    const tags = searchParams.get("tags"); // Comma-separated tags
+    const folder = searchParams.get("folder"); // Cloudinary folder
+    const fileFolder = searchParams.get("fileFolder"); // Custom folder ID
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
+    const sizeMin = searchParams.get("sizeMin");
+    const sizeMax = searchParams.get("sizeMax");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
@@ -148,8 +156,42 @@ export async function GET(request) {
     if (project) query.project = project;
     if (task) query.task = task;
     if (uploadedBy) query.uploadedBy = uploadedBy;
-    if (resourceType) query.resourceType = resourceType;
+    if (resourceType && resourceType !== "all") query.resourceType = resourceType;
+    if (folder) query.folder = folder;
+    if (fileFolder) query.fileFolder = fileFolder;
     query.isArchived = isArchived;
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      query.createdAt = {};
+      if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) query.createdAt.$lte = new Date(dateTo);
+    }
+
+    // Size range filter
+    if (sizeMin || sizeMax) {
+      query.size = {};
+      if (sizeMin) query.size.$gte = parseInt(sizeMin);
+      if (sizeMax) query.size.$lte = parseInt(sizeMax);
+    }
+
+    // Tags filter
+    if (tags) {
+      const tagArray = tags.split(",").map(tag => tag.trim()).filter(Boolean);
+      if (tagArray.length > 0) {
+        query.tags = { $in: tagArray };
+      }
+    }
+
+    // Full-text search across multiple fields
+    if (search) {
+      query.$or = [
+        { filename: { $regex: search, $options: "i" } },
+        { originalFilename: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { tags: { $regex: search, $options: "i" } },
+      ];
+    }
 
     // Execute query
     const [files, total] = await Promise.all([

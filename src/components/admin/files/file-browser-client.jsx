@@ -7,8 +7,9 @@ import FileVersionHistory from "./file-version-history";
 import CreateFolderModal from "./create-folder-modal";
 import FilePermissionsModal from "./file-permissions-modal";
 import ExternalStorageManager from "./external-storage-manager";
+import TagManagementModal from "./tag-management-modal";
 
-function FileCard({ file, onSelect, isSelected, onPreview, onSetPermissions }) {
+function FileCard({ file, onSelect, isSelected, onPreview, onSetPermissions, onManageTags }) {
   const fileIcon = {
     image: "🖼️",
     video: "🎬",
@@ -73,6 +74,15 @@ function FileCard({ file, onSelect, isSelected, onPreview, onSetPermissions }) {
             className="px-3 py-1.5 bg-blue-500 text-white rounded text-xs font-medium hover:bg-blue-600"
           >
             🔒 Permissions
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onManageTags(file);
+            }}
+            className="px-3 py-1.5 bg-green-500 text-white rounded text-xs font-medium hover:bg-green-600"
+          >
+            🏷️ Tags
           </button>
         </div>
 
@@ -201,6 +211,13 @@ export default function FileBrowserClient({ initialFiles, currentUser, paginatio
   const fileInputRef = useRef(null);
   const [search, setSearch] = useState(filters.search || "");
   const [resourceType, setResourceType] = useState(filters.resourceType || "all");
+  const [tags, setTags] = useState(filters.tags || "");
+  const [dateFrom, setDateFrom] = useState(filters.dateFrom || "");
+  const [dateTo, setDateTo] = useState(filters.dateTo || "");
+  const [sizeMin, setSizeMin] = useState(filters.sizeMin || "");
+  const [sizeMax, setSizeMax] = useState(filters.sizeMax || "");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [tagManagementFile, setTagManagementFile] = useState(null);
 
   const toggleSelection = useCallback((file) => {
     setSelectedFiles((prev) =>
@@ -222,8 +239,13 @@ export default function FileBrowserClient({ initialFiles, currentUser, paginatio
     const params = new URLSearchParams();
     if (search) params.set("q", search);
     if (resourceType && resourceType !== "all") params.set("type", resourceType);
+    if (tags) params.set("tags", tags);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
+    if (sizeMin) params.set("sizeMin", sizeMin);
+    if (sizeMax) params.set("sizeMax", sizeMax);
     router.push(`/admin/files?${params.toString()}`);
-  }, [search, resourceType, router]);
+  }, [search, resourceType, tags, dateFrom, dateTo, sizeMin, sizeMax, router]);
 
   const handleFileUpload = async (fileList) => {
     if (!fileList || fileList.length === 0) return;
@@ -412,50 +434,127 @@ export default function FileBrowserClient({ initialFiles, currentUser, paginatio
       </div>
 
       {/* Filters and view controls */}
-      <div className="flex items-center gap-4">
-        <input
-          type="text"
-          placeholder="Search files..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-          className="flex-1 px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-sm"
-        />
-        <select
-          value={resourceType}
-          onChange={(e) => setResourceType(e.target.value)}
-          className="px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-sm"
-        >
-          <option value="all">All Types</option>
-          <option value="image">Images</option>
-          <option value="video">Videos</option>
-          <option value="audio">Audio</option>
-          <option value="raw">Documents</option>
-        </select>
-        <button
-          onClick={handleSearch}
-          className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm"
-        >
-          Search
-        </button>
-        <div className="flex items-center gap-1 border border-neutral-800 rounded-lg overflow-hidden">
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`px-3 py-2 text-sm ${
-              viewMode === "grid" ? "bg-neutral-800" : "hover:bg-neutral-900"
-            }`}
+      <div className="space-y-4">
+        {/* Basic Search */}
+        <div className="flex items-center gap-4">
+          <input
+            type="text"
+            placeholder="Search files, descriptions, tags..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+            className="flex-1 px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-sm"
+          />
+          <select
+            value={resourceType}
+            onChange={(e) => setResourceType(e.target.value)}
+            className="px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-sm"
           >
-            ⊞ Grid
+            <option value="all">All Types</option>
+            <option value="image">Images</option>
+            <option value="video">Videos</option>
+            <option value="audio">Audio</option>
+            <option value="raw">Documents</option>
+          </select>
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm"
+          >
+            🔍 Advanced
           </button>
           <button
-            onClick={() => setViewMode("list")}
-            className={`px-3 py-2 text-sm ${
-              viewMode === "list" ? "bg-neutral-800" : "hover:bg-neutral-900"
-            }`}
+            onClick={handleSearch}
+            className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm"
           >
-            ☰ List
+            Search
           </button>
+          <div className="flex items-center gap-1 border border-neutral-800 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`px-3 py-2 text-sm ${
+                viewMode === "grid" ? "bg-neutral-800" : "hover:bg-neutral-900"
+              }`}
+            >
+              ⊞ Grid
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`px-3 py-2 text-sm ${
+                viewMode === "list" ? "bg-neutral-800" : "hover:bg-neutral-900"
+              }`}
+            >
+              ☰ List
+            </button>
+          </div>
         </div>
+
+        {/* Advanced Filters */}
+        {showAdvancedFilters && (
+          <div className="p-4 bg-neutral-900/50 border border-neutral-800 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Tags Filter */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">
+                  Tags (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  placeholder="design,logo,urgent"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded text-sm"
+                />
+              </div>
+
+              {/* Date Range */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">
+                  Date From
+                </label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">
+                  Date To
+                </label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded text-sm"
+                />
+              </div>
+
+              {/* Size Range */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">
+                  Size Range (MB)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={sizeMin}
+                    onChange={(e) => setSizeMin(e.target.value)}
+                    placeholder="Min"
+                    className="flex-1 px-2 py-2 bg-neutral-900 border border-neutral-800 rounded text-sm"
+                  />
+                  <input
+                    type="number"
+                    value={sizeMax}
+                    onChange={(e) => setSizeMax(e.target.value)}
+                    placeholder="Max"
+                    className="flex-1 px-2 py-2 bg-neutral-900 border border-neutral-800 rounded text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bulk actions */}
@@ -513,6 +612,7 @@ export default function FileBrowserClient({ initialFiles, currentUser, paginatio
               isSelected={selectedFiles.some((f) => f._id === file._id)}
               onPreview={setPreviewFile}
               onSetPermissions={setPermissionsFile}
+              onManageTags={setTagManagementFile}
             />
           ))}
         </div>
@@ -612,19 +712,15 @@ export default function FileBrowserClient({ initialFiles, currentUser, paginatio
         />
       )}
 
-      {/* External storage manager */}
-      {showExternalStorage && (
-        <ExternalStorageManager
-          onClose={() => setShowExternalStorage(false)}
-          onImportFile={(file) => {
-            setFiles((prev) => [file, ...prev]);
-            setShowExternalStorage(false);
-            setTimeout(() => {
-              try { router.refresh(); } catch {}
-            }, 0);
+      {/* Tag management modal */}
+      {tagManagementFile && (
+        <TagManagementModal
+          file={tagManagementFile}
+          onClose={() => setTagManagementFile(null)}
+          onTagsUpdated={(updatedFile) => {
+            // Update the file in local state
+            setFiles(prev => prev.map(f => f._id === updatedFile._id ? updatedFile : f));
+            setTagManagementFile(null);
           }}
         />
       )}
-    </div>
-  );
-}
