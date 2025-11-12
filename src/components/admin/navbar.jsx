@@ -21,7 +21,7 @@ export default function AdminNavbar() {
   async function fetchCurrentUser() {
     if (!session?.user?.id) return;
     try {
-      const res = await fetch(`/api/users/${session.user.id}`);
+      const res = await fetch("/api/auth/me");
       if (!res.ok) {
         console.warn("Failed to fetch user data:", res.status, res.statusText);
         return;
@@ -118,7 +118,7 @@ export default function AdminNavbar() {
                 {/* Menu Items */}
                 <div className="p-2">
                   <Link
-                    href={`/admin/users/${session?.user?.id || currentUser?._id}`}
+                    href={`/admin/users/${currentUser?._id || session?.user?.id}`}
                     onClick={() => setShowProfileMenu(false)}
                     className="block px-3 py-2 rounded hover:bg-neutral-800 transition text-sm"
                   >
