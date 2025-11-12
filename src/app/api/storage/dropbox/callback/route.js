@@ -81,11 +81,26 @@ export async function GET(request) {
       method: "POST",
       headers: { 
         Authorization: `Bearer ${access_token}`,
-        "Content-Type": "application/json",
       },
     });
 
-    const userInfo = await userInfoResponse.json();
+    let userInfo;
+    if (!userInfoResponse.ok) {
+      let text = "";
+      try {
+        text = await userInfoResponse.text();
+      } catch {}
+      console.error("Dropbox users/get_current_account failed:", text);
+      throw new Error(`Failed to fetch account: ${userInfoResponse.status} ${text?.substring(0, 120)}`);
+    } else {
+      const ct = userInfoResponse.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        userInfo = await userInfoResponse.json();
+      } else {
+        const text = await userInfoResponse.text();
+        throw new Error(`Unexpected Dropbox response (${ct}): ${text.substring(0, 120)}`);
+      }
+    }
 
     await connectToDatabase();
 

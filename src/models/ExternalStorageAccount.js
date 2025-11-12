@@ -45,17 +45,6 @@ function encrypt(text) {
   return iv.toString("hex") + ":" + encrypted;
 }
 
-function decrypt(text) {
-  if (!text) return null;
-  const parts = text.split(":");
-  const iv = Buffer.from(parts.shift(), "hex");
-  const encryptedText = parts.join(":");
-  const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY.slice(0, 32)), iv);
-  let decrypted = decipher.update(encryptedText, "hex", "utf8");
-  decrypted += decipher.final("utf8");
-  return decrypted;
-}
-
 // Pre-save hook to encrypt tokens
 ExternalStorageAccountSchema.pre("save", function (next) {
   if (this.isModified("accessToken") && this.accessToken) {
@@ -72,14 +61,51 @@ ExternalStorageAccountSchema.pre("save", function (next) {
   next();
 });
 
-// Method to get decrypted access token
+// Method to get decrypted access token (backward compatible if plaintext)
 ExternalStorageAccountSchema.methods.getAccessToken = function () {
-  return decrypt(this.accessToken);
+  if (!this.accessToken) return null;
+  try {
+    // If value looks encrypted (iv:payload), decrypt; otherwise treat as plaintext
+    if (!this.accessToken.includes(":")) return this.accessToken;
+
+    const parts = this.accessToken.split(":");
+    if (parts.length < 2) return this.accessToken; // Not properly encrypted
+
+    const iv = Buffer.from(parts.shift(), "hex");
+    const encryptedText = parts.join(":");
+
+    const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY.slice(0, 32)), iv);
+    let decrypted = decipher.update(encryptedText, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch (e) {
+    console.warn("Failed to decrypt access token, using raw value:", e.message);
+    // Fallback to raw value to avoid hard crashes; upstream calls can validate
+    return this.accessToken;
+  }
 };
 
-// Method to get decrypted refresh token
+// Method to get decrypted refresh token (backward compatible if plaintext)
 ExternalStorageAccountSchema.methods.getRefreshToken = function () {
-  return decrypt(this.refreshToken);
+  if (!this.refreshToken) return null;
+  try {
+    // If value looks encrypted (iv:payload), decrypt; otherwise treat as plaintext
+    if (!this.refreshToken.includes(":")) return this.refreshToken;
+
+    const parts = this.refreshToken.split(":");
+    if (parts.length < 2) return this.refreshToken; // Not properly encrypted
+
+    const iv = Buffer.from(parts.shift(), "hex");
+    const encryptedText = parts.join(":");
+
+    const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY.slice(0, 32)), iv);
+    let decrypted = decipher.update(encryptedText, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch (e) {
+    console.warn("Failed to decrypt refresh token, using raw value:", e.message);
+    return this.refreshToken;
+  }
 };
 
 export default mongoose.models.ExternalStorageAccount || 
