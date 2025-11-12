@@ -617,8 +617,11 @@ export default function FileBrowserClient({ initialFiles, currentUser, paginatio
         <ExternalStorageManager
           onClose={() => setShowExternalStorage(false)}
           onImportFile={(file) => {
-            router.refresh();
+            setFiles((prev) => [file, ...prev]);
             setShowExternalStorage(false);
+            setTimeout(() => {
+              try { router.refresh(); } catch {}
+            }, 0);
           }}
         />
       )}

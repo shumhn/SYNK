@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/guard";
 import connectToDatabase from "@/lib/db/mongodb";
 import ExternalStorageAccount from "@/models/ExternalStorageAccount";
+import { generateUploadSignature } from "@/lib/cloudinary";
 
 /**
  * GET /api/storage/dropbox/files
@@ -186,7 +187,6 @@ export async function POST(request) {
     const buffer = await dlRes.arrayBuffer();
     const blob = new Blob([buffer]);
 
-    // Upload to Cloudinary
     const cloudinaryResponse = await uploadToCloudinary(blob, filename);
 
     // Create FileAsset record
@@ -249,29 +249,21 @@ async function refreshDropboxToken(account) {
 }
 
 async function uploadToCloudinary(blob, filename) {
-  // Get upload signature
-  const sigResponse = await fetch("/api/uploads/cloudinary/sign", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ folder: "imported" }),
-  });
-
-  const sig = await sigResponse.json();
-  if (sig.error) throw new Error("Failed to get Cloudinary signature");
-
-  const { cloudName, apiKey, timestamp, signature, folder } = sig.data;
+  // Generate upload signature using shared utility
+  const sig = generateUploadSignature({ folder: "imported" });
 
   const formData = new FormData();
   formData.append("file", blob, filename);
-  formData.append("api_key", apiKey);
-  formData.append("timestamp", String(timestamp));
-  if (folder) formData.append("folder", folder);
-  formData.append("signature", signature);
+  formData.append("api_key", sig.apiKey);
+  formData.append("timestamp", String(sig.timestamp));
+  if (sig.folder) formData.append("folder", sig.folder);
+  if (sig.uploadPreset) formData.append("upload_preset", sig.uploadPreset);
+  formData.append("signature", sig.signature);
 
-  const uploadResponse = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
-    { method: "POST", body: formData }
-  );
+  const uploadResponse = await fetch(sig.uploadUrl, {
+    method: "POST",
+    body: formData
+  });
 
   if (!uploadResponse.ok) throw new Error("Cloudinary upload failed");
 
