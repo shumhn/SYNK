@@ -20,6 +20,8 @@ export default function ExternalStorageManager({ onClose, onImportFile }) {
     // Check for success messages from URL parameters
     const dropboxConnected = searchParams.get("dropbox_connected");
     const googleDriveConnected = searchParams.get("google_drive_connected");
+    const error = searchParams.get("error");
+    const details = searchParams.get("details");
     
     if (dropboxConnected === "true") {
       setSuccessMessage("Dropbox connected successfully!");
@@ -37,6 +39,22 @@ export default function ExternalStorageManager({ onClose, onImportFile }) {
       window.history.replaceState({}, "", url);
       // Auto-clear success message after 5 seconds
       setTimeout(() => setSuccessMessage(""), 5000);
+    } else if (error) {
+      let errorMessage = "Connection failed";
+      if (error === "dropbox_connection_failed") {
+        errorMessage = "Dropbox connection failed";
+        if (details) {
+          errorMessage += `: ${decodeURIComponent(details)}`;
+        } else {
+          errorMessage += ". Check that the redirect URI is correctly configured.";
+        }
+      }
+      setSuccessMessage(errorMessage); // Using successMessage for errors too
+      // Clear the URL parameters
+      const url = new URL(window.location);
+      url.searchParams.delete("error");
+      url.searchParams.delete("details");
+      window.history.replaceState({}, "", url);
     }
   }, [searchParams]);
 
@@ -160,10 +178,28 @@ export default function ExternalStorageManager({ onClose, onImportFile }) {
             Connect and import files from Google Drive or Dropbox
           </p>
           {successMessage && (
-            <div className="mt-3 p-3 bg-green-500/10 border border-green-500/50 rounded-lg">
+            <div className={`mt-3 p-3 border rounded-lg ${
+              successMessage.includes("failed") || successMessage.includes("error") || successMessage.includes("Error")
+                ? "bg-red-500/10 border-red-500/50"
+                : "bg-green-500/10 border-green-500/50"
+            }`}>
               <div className="flex items-center gap-2">
-                <div className="text-green-400 text-lg">✅</div>
-                <p className="text-green-400 font-medium">{successMessage}</p>
+                <div className={`text-lg ${
+                  successMessage.includes("failed") || successMessage.includes("error") || successMessage.includes("Error")
+                    ? "text-red-400"
+                    : "text-green-400"
+                }`}>
+                  {successMessage.includes("failed") || successMessage.includes("error") || successMessage.includes("Error")
+                    ? "❌"
+                    : "✅"}
+                </div>
+                <p className={`font-medium ${
+                  successMessage.includes("failed") || successMessage.includes("error") || successMessage.includes("Error")
+                    ? "text-red-400"
+                    : "text-green-400"
+                }`}>
+                  {successMessage}
+                </p>
               </div>
             </div>
           )}

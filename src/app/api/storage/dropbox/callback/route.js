@@ -50,9 +50,27 @@ export async function GET(request) {
     console.log("Token response status:", tokenResponse.status);
 
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.log("Token exchange failed:", errorText);
-      throw new Error(`Failed to exchange authorization code: ${tokenResponse.status} ${errorText}`);
+      let errorText = "Unknown error";
+      try {
+        errorText = await tokenResponse.text();
+        // Try to parse as JSON first
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorText = errorJson.error_description || errorJson.error || errorText;
+        } catch {
+          // Not JSON, use as-is
+        }
+      } catch {
+        errorText = `HTTP ${tokenResponse.status}`;
+      }
+
+      console.log("Token exchange failed:", {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        errorText: errorText.substring(0, 200) // Limit log length
+      });
+
+      throw new Error(`Token exchange failed: ${tokenResponse.status} - ${errorText.substring(0, 100)}`);
     }
 
     const tokens = await tokenResponse.json();
