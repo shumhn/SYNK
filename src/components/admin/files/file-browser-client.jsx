@@ -712,6 +712,21 @@ export default function FileBrowserClient({ initialFiles, currentUser, paginatio
         />
       )}
 
+      {/* External storage modal */}
+      {showExternalStorage && (
+        <ExternalStorageManager
+          onClose={() => setShowExternalStorage(false)}
+          onImportFile={(importedFile) => {
+            // Update the files list immediately to show the imported file
+            setFiles(prev => [importedFile, ...prev]);
+            // Refresh files in background to sync server-derived stats
+            setTimeout(() => {
+              fetchFiles();
+            }, 1000);
+          }}
+        />
+      )}
+
       {/* Tag management modal */}
       {tagManagementFile && (
         <TagManagementModal
