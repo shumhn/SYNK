@@ -58,6 +58,7 @@ export default function AdminNavbar() {
         <div className="flex items-center gap-1">
           <Link href="/admin/dashboard" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/dashboard") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Dashboard</Link>
           <Link href="/admin/users" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/users") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Users</Link>
+          <Link href="/admin/analytics" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/analytics") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Analytics</Link>
           <Link href="/admin/departments" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/departments") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Departments</Link>
           <Link href="/admin/teams" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/teams") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Teams</Link>
           <Link href="/admin/projects" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/projects") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Projects</Link>
@@ -66,7 +67,7 @@ export default function AdminNavbar() {
           <Link href="/admin/messages" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/messages") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Messages</Link>
           <Link href="/admin/channels" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/channels") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Channels</Link>
           <Link href="/admin/files" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/files") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Files</Link>
-          <Link href="/admin/settings/task-types" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/settings/task-types") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Task Types</Link>
+          <Link href="/admin/settings/task-types" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/settings/task-types") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Types</Link>
           <Link href="/admin/settings" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/settings") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Settings</Link>
         </div>
         <div className="flex items-center gap-3">

@@ -241,3 +241,12 @@ function TenureBar({ label, value, total }) {
     </div>
   );
 }
+
+function Legend({ color, label }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-3 h-3 rounded" style={{ backgroundColor: color }} />
+      <span>{label}</span>
+    </div>
+  );
+}

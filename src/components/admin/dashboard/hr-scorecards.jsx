@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 export default function HRScorecards({ scope = "company", refId = null }) {
   const [range, setRange] = useState("90d");
@@ -160,12 +161,17 @@ export default function HRScorecards({ scope = "company", refId = null }) {
                     </div>
                     <div>
                       <div className="text-white font-semibold flex items-center gap-2">
-                        {row.username}
+                        <Link href={`/admin/users/${row.userId}`} className="underline decoration-dotted hover:decoration-solid">
+                          {row.username}
+                        </Link>
                         {idx === 0 && (
                           <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">🏆 Top</span>
                         )}
                       </div>
-                      <div className="text-xs text-gray-400">{row.email} • {row.department || "No department"}</div>
+                      <div className="text-xs text-gray-400">
+                        {row.email} • {row.department || "No department"}
+                        <Link href={`/admin/users/${row.userId}`} className="ml-2 text-blue-400 hover:text-blue-300">View</Link>
+                      </div>
                     </div>
                   </div>
 

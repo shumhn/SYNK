@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 export default function EmployeeRankings({ scope = "company", refId = null }) {
   const [range, setRange] = useState("90d");
@@ -182,12 +183,17 @@ function RankRow({ user, index, highlight }) {
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white ${highlight === 'top' ? 'bg-emerald-600/30 border border-emerald-500/40' : 'bg-red-600/20 border border-red-500/30'}`}>{index + 1}</div>
           <div>
             <div className="text-white font-medium flex items-center gap-2">
-              {user.username}
+              <Link href={`/admin/users/${user.userId}`} className="underline decoration-dotted hover:decoration-solid">
+                {user.username}
+              </Link>
               {highlight === 'top' && index === 0 && (
                 <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-[10px] rounded-full border border-yellow-500/30">🏆</span>
               )}
             </div>
-            <div className="text-[11px] text-gray-400">{user.email} • {user.department || 'No department'}</div>
+            <div className="text-[11px] text-gray-400">
+              {user.email} • {user.department || 'No department'}
+              <Link href={`/admin/users/${user.userId}`} className="ml-2 text-blue-400 hover:text-blue-300">View</Link>
+            </div>
           </div>
         </div>
         <div className="min-w-[80px] text-right">
