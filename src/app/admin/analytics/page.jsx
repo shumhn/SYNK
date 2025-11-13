@@ -5,6 +5,8 @@ import ProductivityTrends from "@/components/admin/dashboard/productivity-trends
 import DepartmentComparisonChart from "@/components/admin/dashboard/department-comparison-chart";
 import HRScorecards from "@/components/admin/dashboard/hr-scorecards";
 import EmployeeRankings from "@/components/admin/dashboard/employee-rankings";
+import EngagementWorkload from "@/components/admin/dashboard/engagement-workload";
+import RetentionAnalytics from "@/components/admin/dashboard/retention-analytics";
 
 export default function AnalyticsDashboard() {
   const [scope, setScope] = useState("company");
@@ -236,6 +238,14 @@ export default function AnalyticsDashboard() {
         {/* Employee Rankings - Company and Department scopes */}
         {(scope === "company" || scope === "department") && (
           <EmployeeRankings scope={scope} refId={scope === "department" ? refId : null} />
+        )}
+
+        {/* Engagement & Workload - All scopes */}
+        <EngagementWorkload scope={scope} refId={scope === "company" ? null : refId} />
+
+        {/* Retention Analytics - Company and Department scopes */}
+        {(scope === "company" || scope === "department") && (
+          <RetentionAnalytics scope={scope} refId={scope === "department" ? refId : null} />
         )}
 
         {/* Summary Stats */}
