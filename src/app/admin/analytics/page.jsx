@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import ProductivityTrends from "@/components/admin/dashboard/productivity-trends";
 import DepartmentComparisonChart from "@/components/admin/dashboard/department-comparison-chart";
+import HRScorecards from "@/components/admin/dashboard/hr-scorecards";
+import EmployeeRankings from "@/components/admin/dashboard/employee-rankings";
 
 export default function AnalyticsDashboard() {
   const [scope, setScope] = useState("company");
@@ -225,6 +227,16 @@ export default function AnalyticsDashboard() {
 
         {/* Department Comparison Chart - Only show for company scope */}
         {scope === "company" && <DepartmentComparisonChart />}
+
+        {/* HR Scorecards - Company and Department scopes */}
+        {(scope === "company" || scope === "department") && (
+          <HRScorecards scope={scope} refId={scope === "department" ? refId : null} />
+        )}
+
+        {/* Employee Rankings - Company and Department scopes */}
+        {(scope === "company" || scope === "department") && (
+          <EmployeeRankings scope={scope} refId={scope === "department" ? refId : null} />
+        )}
 
         {/* Summary Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
