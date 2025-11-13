@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import ProductivityTrends from "./productivity-trends";
 
 export default function DashboardClient({ 
   metrics, 
@@ -235,6 +236,9 @@ export default function DashboardClient({
           </div>
         </div>
       </div>
+
+      {/* Productivity Trends */}
+      <ProductivityTrends scope="company" refId={null} />
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

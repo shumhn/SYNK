@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import ProductivityTrends from "@/components/admin/dashboard/productivity-trends";
 
 export default function AnalyticsDashboard() {
   const [scope, setScope] = useState("company");
@@ -99,7 +100,7 @@ export default function AnalyticsDashboard() {
               </h1>
               <p className="text-gray-400 text-sm font-medium">{scopeTitle}</p>
             </div>
-            
+
             <div className="flex items-center gap-3">
               {/* Date Range Selector */}
               <select 
@@ -217,6 +218,9 @@ export default function AnalyticsDashboard() {
             borderColor="border-orange-500/20"
           />
         </div>
+
+        {/* Productivity Trends */}
+        <ProductivityTrends scope={scope} refId={scope === "company" ? null : refId} />
 
         {/* Summary Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
