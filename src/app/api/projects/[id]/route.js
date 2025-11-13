@@ -7,6 +7,8 @@ import Milestone from "@/models/Milestone";
 import Department from "@/models/Department";
 import User from "@/models/User";
 import { requireRoles } from "@/lib/auth/guard";
+import AuditLog from "@/models/AuditLog";
+import { broadcastEvent } from "@/app/api/events/subscribe/route";
 
 function badId() {
   return NextResponse.json({ error: true, message: "Invalid project id" }, { status: 400 });
@@ -94,12 +96,42 @@ export async function PATCH(req, { params }) {
     update.members = Array.from(membersSet);
   }
 
+  // Snapshot before
+  const before = await Project.findById(id)
+    .select("title description startDate endDate status archived departments managers members budget resources")
+    .lean();
+  if (!before) return NextResponse.json({ error: true, message: "Not found" }, { status: 404 });
+
   const updated = await Project.findByIdAndUpdate(id, update, { new: true })
     .populate("departments", "name")
     .populate("managers", "username email")
     .populate("members", "username email");
   
   if (!updated) return NextResponse.json({ error: true, message: "Not found" }, { status: 404 });
+  // Audit diff
+  try {
+    const after = await Project.findById(id)
+      .select("title description startDate endDate status archived departments managers members budget resources")
+      .lean();
+    const fields = ["title","description","startDate","endDate","status","archived","departments","managers","members","budget","resources"];
+    const changes = {};
+    const toStr = (v)=> (v && typeof v === 'object' ? JSON.stringify(v) : String(v));
+    for (const f of fields) {
+      if (toStr(before?.[f]) !== toStr(after?.[f])) {
+        changes[f] = { before: before?.[f] ?? null, after: after?.[f] ?? null };
+      }
+    }
+    if (Object.keys(changes).length > 0) {
+      await AuditLog.create({
+        user: auth.user._id,
+        action: "project_updated",
+        resource: "Project",
+        resourceId: updated._id,
+        details: { changes },
+        status: "success",
+      });
+    }
+  } catch {}
   return NextResponse.json({ error: false, data: updated }, { status: 200 });
 }
 
@@ -117,6 +149,19 @@ export async function DELETE(_req, { params }) {
   // Delete associated tasks and milestones
   await Task.deleteMany({ project: id });
   await Milestone.deleteMany({ project: id });
+  try {
+    await AuditLog.create({
+      user: auth.user._id,
+      action: "project_deleted",
+      resource: "Project",
+      resourceId: project._id,
+      details: { title: project.title, status: project.status, departments: project.departments, managers: project.managers },
+      status: "success",
+    });
+  } catch {}
+  try {
+    broadcastEvent({ type: "project-deleted", projectId: id });
+  } catch {}
   
   return NextResponse.json({ error: false, message: "Project deleted" }, { status: 200 });
 }

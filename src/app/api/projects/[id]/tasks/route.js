@@ -6,6 +6,8 @@ import TaskType from "@/models/TaskType";
 import Project from "@/models/Project";
 import User from "@/models/User";
 import { requireRoles } from "@/lib/auth/guard";
+import { broadcastEvent } from "@/app/api/events/subscribe/route";
+import AuditLog from "@/models/AuditLog";
 
 export async function GET(req, { params }) {
   const auth = await requireRoles(["admin", "hr", "manager", "employee"]);
@@ -90,6 +92,19 @@ export async function POST(req, { params }) {
     checklist: checklist || [],
     attachments: attachments || [],
   });
+  try {
+    broadcastEvent({ type: "task-created", taskId: created._id, project: created.project, status: created.status });
+  } catch {}
+  try {
+    await AuditLog.create({
+      user: auth.user._id,
+      action: "task_created",
+      resource: "Task",
+      resourceId: created._id,
+      details: { title: created.title, project: created.project, assignee: created.assignee, status: created.status, priority: created.priority, dueDate: created.dueDate },
+      status: "success",
+    });
+  } catch {}
   
   return NextResponse.json({ error: false, data: created }, { status: 201 });
 }

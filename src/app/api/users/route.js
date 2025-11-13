@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db/mongodb";
 import User from "@/models/User";
 import { requireRoles } from "@/lib/auth/guard";
+import { broadcastEvent } from "@/app/api/events/subscribe/route";
 import { CreateUserSchema } from "@/lib/validations/user";
 
 export async function GET(req) {
@@ -47,6 +48,10 @@ export async function POST(req) {
   }
 
   const created = await User.create(parsed.data);
+
+  try {
+    broadcastEvent({ type: "user-created", userId: created._id });
+  } catch {}
 
   return NextResponse.json(
     {

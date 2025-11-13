@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import connectToDatabase from "@/lib/db/mongodb";
 import User from "@/models/User";
 import { requireRoles } from "@/lib/auth/guard";
+import { broadcastEvent } from "@/app/api/events/subscribe/route";
 import { UpdateUserSchema } from "@/lib/validations/user";
 
 function badId() {
@@ -121,6 +122,9 @@ export async function DELETE(_req, { params }) {
       { error: true, message: "Not found" },
       { status: 404 }
     );
+  try {
+    broadcastEvent({ type: "user-deleted", userId: id });
+  } catch {}
   return NextResponse.json(
     { error: false, message: "User deleted" },
     { status: 200 }

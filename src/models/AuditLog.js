@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { broadcastEvent } from "@/app/api/events/subscribe/route";
 
 const AuditLogSchema = new mongoose.Schema(
   {
@@ -32,5 +33,23 @@ AuditLogSchema.index({ user: 1, createdAt: -1 });
 AuditLogSchema.index({ action: 1, createdAt: -1 });
 AuditLogSchema.index({ resourceId: 1 });
 AuditLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7776000 }); // Auto-delete after 90 days
+
+// Broadcast real-time activity on creation
+AuditLogSchema.post("save", function (doc) {
+  try {
+    broadcastEvent({
+      type: "activity",
+      id: String(doc._id),
+      action: doc.action,
+      status: doc.status || "success",
+      userId: doc.user ? String(doc.user) : null,
+      resource: doc.resource || null,
+      resourceId: doc.resourceId ? String(doc.resourceId) : null,
+      ts: doc.createdAt,
+    });
+  } catch (e) {
+    // ignore broadcast failures
+  }
+});
 
 export default mongoose.models.AuditLog || mongoose.model("AuditLog", AuditLogSchema);

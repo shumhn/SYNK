@@ -3,6 +3,7 @@ import connectToDatabase from "@/lib/db/mongodb";
 import Team from "@/models/Team";
 import Department from "@/models/Department";
 import { requireRoles } from "@/lib/auth/guard";
+import { broadcastEvent } from "@/app/api/events/subscribe/route";
 
 export async function GET(req) {
   // Allow viewing during initial setup if no teams exist
@@ -52,5 +53,8 @@ export async function POST(req) {
   const exists = await Team.findOne({ name, department: department || null }).lean();
   if (exists) return NextResponse.json({ error: true, message: "Team already exists" }, { status: 400 });
   const created = await Team.create({ name, department: department || undefined, description });
+  try {
+    broadcastEvent({ type: "team-created", teamId: created._id, department: created.department || null });
+  } catch {}
   return NextResponse.json({ error: false, data: { id: created._id, name: created.name, department: created.department, description: created.description } }, { status: 201 });
 }

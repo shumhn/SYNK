@@ -16,6 +16,13 @@ export async function GET(req) {
     { $sort: { count: -1 } },
   ]);
 
+  // Priority breakdown of open tasks
+  const priorityAgg = await Task.aggregate([
+    { $match: { status: { $ne: "completed" } } },
+    { $group: { _id: "$priority", count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+  ]);
+
   // Top assignees by open tasks
   const assigneesAgg = await Task.aggregate([
     { $match: { status: { $ne: "completed" }, assignee: { $ne: null } } },
@@ -27,5 +34,5 @@ export async function GET(req) {
     { $project: { _id: 0, userId: "$user._id", username: "$user.username", email: "$user.email", count: 1 } },
   ]);
 
-  return NextResponse.json({ error: false, data: { statusBreakdown: statusAgg, topAssignees: assigneesAgg } });
+  return NextResponse.json({ error: false, data: { statusBreakdown: statusAgg, priorityBreakdown: priorityAgg, topAssignees: assigneesAgg } });
 }

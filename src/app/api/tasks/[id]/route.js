@@ -4,6 +4,8 @@ import connectToDatabase from "@/lib/db/mongodb";
 import Task from "@/models/Task";
 import TaskType from "@/models/TaskType";
 import { requireRoles } from "@/lib/auth/guard";
+import { broadcastEvent } from "@/app/api/events/subscribe/route";
+import AuditLog from "@/models/AuditLog";
 
 function badId() {
   return NextResponse.json({ error: true, message: "Invalid task id" }, { status: 400 });
@@ -100,11 +102,46 @@ export async function PATCH(req, { params }) {
     }
   }
 
+  // Snapshot before
+  const before = await Task.findById(id)
+    .select("title description milestone assignee assignees status priority taskType startDate dueDate estimatedHours actualHours progress tags dependencies checklist attachments recurring parentTask boardOrder project")
+    .lean();
+  if (!before) return NextResponse.json({ error: true, message: "Not found" }, { status: 404 });
+
   // Apply update
   let updated = await Task.findByIdAndUpdate(id, update, { new: true })
     .populate("assignee", "username email")
     .populate("milestone", "title");
   if (!updated) return NextResponse.json({ error: true, message: "Not found" }, { status: 404 });
+
+  // Audit diff
+  try {
+    const after = await Task.findById(id)
+      .select("title description milestone assignee assignees status priority taskType startDate dueDate estimatedHours actualHours progress tags dependencies checklist attachments recurring parentTask boardOrder project")
+      .lean();
+    const changes = {};
+    const fields = [
+      "title","description","milestone","assignee","assignees","status","priority","taskType","startDate","dueDate","estimatedHours","actualHours","progress","tags","dependencies","checklist","attachments","recurring","parentTask","boardOrder"
+    ];
+    for (const f of fields) {
+      const b = before?.[f];
+      const a = after?.[f];
+      const toStr = (v) => (v && typeof v === 'object' ? JSON.stringify(v) : String(v));
+      if (toStr(b) !== toStr(a)) {
+        changes[f] = { before: b ?? null, after: a ?? null };
+      }
+    }
+    if (Object.keys(changes).length > 0) {
+      await AuditLog.create({
+        user: auth.user._id,
+        action: "task_updated",
+        resource: "Task",
+        resourceId: updated._id,
+        details: { project: updated.project, changes },
+        status: "success",
+      });
+    }
+  } catch {}
 
   // Auto progress from checklist/subtasks if not explicitly set
   try {
@@ -148,6 +185,10 @@ export async function PATCH(req, { params }) {
     }
   } catch (e) {}
 
+  try {
+    broadcastEvent({ type: "task-updated", taskId: id, project: updated.project, status: updated.status });
+  } catch {}
+
   return NextResponse.json({ error: false, data: updated }, { status: 200 });
 }
 
@@ -161,6 +202,19 @@ export async function DELETE(_req, { params }) {
   await connectToDatabase();
   const task = await Task.findByIdAndDelete(id);
   if (!task) return NextResponse.json({ error: true, message: "Not found" }, { status: 404 });
+  try {
+    broadcastEvent({ type: "task-deleted", taskId: id, project: task.project });
+  } catch {}
+  try {
+    await AuditLog.create({
+      user: auth.user._id,
+      action: "task_deleted",
+      resource: "Task",
+      resourceId: task._id,
+      details: { title: task.title, project: task.project, assignee: task.assignee, status: task.status, priority: task.priority, dueDate: task.dueDate },
+      status: "success",
+    });
+  } catch {}
   return NextResponse.json({ error: false, message: "Task deleted" }, { status: 200 });
 }
 

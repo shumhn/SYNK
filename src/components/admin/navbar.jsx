@@ -59,6 +59,9 @@ export default function AdminNavbar() {
           <Link href="/admin/dashboard" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/dashboard") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Dashboard</Link>
           <Link href="/admin/users" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/users") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Users</Link>
           <Link href="/admin/analytics" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/analytics") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Analytics</Link>
+          {((currentUser?.roles || session?.user?.roles || []).some((r) => ["admin","hr","manager"].includes(r))) && (
+            <Link href="/admin/analytics#appraisals" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/analytics") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Appraisals</Link>
+          )}
           <Link href="/admin/departments" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/departments") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Departments</Link>
           <Link href="/admin/teams" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/teams") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Teams</Link>
           <Link href="/admin/projects" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/projects") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Projects</Link>

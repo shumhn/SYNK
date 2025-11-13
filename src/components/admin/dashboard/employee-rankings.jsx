@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 export default function EmployeeRankings({ scope = "company", refId = null }) {
@@ -11,10 +11,12 @@ export default function EmployeeRankings({ scope = "company", refId = null }) {
   const [low, setLow] = useState([]);
   const [summary, setSummary] = useState(null);
   const [weightsOpen, setWeightsOpen] = useState(false);
-  const [wOnTime, setWOnTime] = useState(45);
-  const [wThroughput, setWThroughput] = useState(40);
-  const [wCompletion, setWCompletion] = useState(15);
-  const [wPenalty, setWPenalty] = useState(30);
+  const [wOnTime, setWOnTime] = useState(30);
+  const [wThroughput, setWThroughput] = useState(20);
+  const [wCompletion, setWCompletion] = useState(50);
+  const [wPenalty, setWPenalty] = useState(0);
+  const sseTimer = useRef(null);
+  const [startingId, setStartingId] = useState(null);
 
   const { from, to } = useMemo(() => {
     const now = new Date();
@@ -58,8 +60,56 @@ export default function EmployeeRankings({ scope = "company", refId = null }) {
 
   useEffect(() => { load(); }, [scope, refId, from, to, wOnTime, wThroughput, wCompletion, wPenalty]);
 
+  useEffect(() => {
+    const es = new EventSource("/api/events/subscribe");
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data && (data.type === "task-created" || data.type === "task-updated" || data.type === "task-deleted")) {
+          if (sseTimer.current) clearTimeout(sseTimer.current);
+          sseTimer.current = setTimeout(() => { load(); }, 300);
+        }
+      } catch {}
+    };
+    return () => {
+      es.close();
+      if (sseTimer.current) clearTimeout(sseTimer.current);
+    };
+  }, []);
+
   function resetWeights() {
-    setWOnTime(45); setWThroughput(40); setWCompletion(15); setWPenalty(30);
+    setWOnTime(30); setWThroughput(20); setWCompletion(50); setWPenalty(0);
+  }
+
+  async function startAppraisal(userId) {
+    try {
+      setStartingId(userId);
+      let res = await fetch(`/api/hr/appraisals/cycles?status=open&limit=1&sort=-periodEnd`, { cache: "no-store" });
+      let json = await res.json();
+      let cycle = (json.data || [])[0] || null;
+      if (!cycle) {
+        res = await fetch(`/api/hr/appraisals/cycles`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        });
+        json = await res.json();
+        if (!res.ok || json.error) throw new Error(json.message || "Failed to create cycle");
+        cycle = json.data;
+      }
+
+      const createRes = await fetch(`/api/hr/appraisals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cycleId: cycle._id, employeeId: userId })
+      });
+      const createJson = await createRes.json();
+      if (!createRes.ok || createJson.error) throw new Error(createJson.message || "Failed to create appraisal");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setStartingId(null);
+    }
   }
 
   function exportCsv() {
@@ -148,7 +198,7 @@ export default function EmployeeRankings({ scope = "company", refId = null }) {
             </div>
             <div className="space-y-2">
               {top.map((u, i) => (
-                <RankRow key={u.userId} user={u} index={i} highlight="top" />
+                <RankRow key={u.userId} user={u} index={i} highlight="top" onStartAppraisal={startAppraisal} starting={startingId === u.userId} />
               ))}
             </div>
           </div>
@@ -165,7 +215,7 @@ export default function EmployeeRankings({ scope = "company", refId = null }) {
             </div>
             <div className="space-y-2">
               {low.map((u, i) => (
-                <RankRow key={u.userId} user={u} index={i} highlight="low" />
+                <RankRow key={u.userId} user={u} index={i} highlight="low" onStartAppraisal={startAppraisal} starting={startingId === u.userId} />
               ))}
             </div>
           </div>
@@ -175,7 +225,7 @@ export default function EmployeeRankings({ scope = "company", refId = null }) {
   );
 }
 
-function RankRow({ user, index, highlight }) {
+function RankRow({ user, index, highlight, onStartAppraisal, starting }) {
   return (
     <div className="p-3 rounded-xl border border-neutral-800/60 bg-neutral-900/40 hover:bg-neutral-900/60 transition-colors">
       <div className="flex items-center justify-between gap-3">
@@ -197,8 +247,17 @@ function RankRow({ user, index, highlight }) {
           </div>
         </div>
         <div className="min-w-[80px] text-right">
-          <div className={`text-2xl font-bold bg-clip-text text-transparent ${highlight === 'top' ? 'bg-gradient-to-r from-emerald-400 to-green-500' : 'bg-gradient-to-r from-red-400 to-orange-400'}`}>{user.score}</div>
+          <div className={`text-2xl font-bold ${user.score >= 80 ? 'text-emerald-400' : user.score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>{user.score}</div>
           <div className="text-[10px] text-gray-400">Score</div>
+          <div className="mt-2">
+            <button
+              onClick={() => onStartAppraisal && onStartAppraisal(user.userId)}
+              disabled={starting}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/60 text-white rounded-lg text-xs font-medium"
+            >
+              {starting ? 'Starting...' : 'Start Appraisal'}
+            </button>
+          </div>
         </div>
       </div>
       <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">

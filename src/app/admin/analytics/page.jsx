@@ -7,6 +7,7 @@ import HRScorecards from "@/components/admin/dashboard/hr-scorecards";
 import EmployeeRankings from "@/components/admin/dashboard/employee-rankings";
 import EngagementWorkload from "@/components/admin/dashboard/engagement-workload";
 import RetentionAnalytics from "@/components/admin/dashboard/retention-analytics";
+import AppraisalsPanel from "@/components/admin/dashboard/appraisals-panel";
 
 export default function AnalyticsDashboard() {
   const [scope, setScope] = useState("company");
@@ -239,6 +240,9 @@ export default function AnalyticsDashboard() {
         {(scope === "company" || scope === "department") && (
           <EmployeeRankings scope={scope} refId={scope === "department" ? refId : null} />
         )}
+
+        {/* Appraisals Panel - All scopes (shows open cycle progress) */}
+        <AppraisalsPanel />
 
         {/* Engagement & Workload - All scopes */}
         <EngagementWorkload scope={scope} refId={scope === "company" ? null : refId} />

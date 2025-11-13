@@ -4,7 +4,9 @@ import Project from "@/models/Project";
 import Task from "@/models/Task";
 import Department from "@/models/Department";
 import User from "@/models/User";
+import AuditLog from "@/models/AuditLog";
 import { requireRoles } from "@/lib/auth/guard";
+import { broadcastEvent } from "@/app/api/events/subscribe/route";
 
 export async function GET(req) {
   const auth = await requireRoles(["admin", "hr", "manager"]);
@@ -87,6 +89,19 @@ export async function POST(req) {
     budget,
     createdBy: auth.user._id,
   });
+  try {
+    broadcastEvent({ type: "project-created", projectId: created._id });
+  } catch {}
+  try {
+    await AuditLog.create({
+      user: auth.user._id,
+      action: "project_created",
+      resource: "Project",
+      resourceId: created._id,
+      details: { title: created.title, departments: created.departments, managers: created.managers, members: created.members },
+      status: "success",
+    });
+  } catch {}
   
   return NextResponse.json({ error: false, data: { id: created._id } }, { status: 201 });
 }

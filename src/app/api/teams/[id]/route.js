@@ -5,6 +5,7 @@ import Team from "@/models/Team";
 import Department from "@/models/Department";
 import User from "@/models/User";
 import { requireRoles } from "@/lib/auth/guard";
+import { broadcastEvent } from "@/app/api/events/subscribe/route";
 
 function badId() {
   return NextResponse.json({ error: true, message: "Invalid team id" }, { status: 400 });
@@ -33,6 +34,9 @@ export async function DELETE(_req, { params }) {
   }
   const deleted = await Team.findByIdAndDelete(id);
   if (!deleted) return NextResponse.json({ error: true, message: "Not found" }, { status: 404 });
+  try {
+    broadcastEvent({ type: "team-deleted", teamId: id });
+  } catch {}
   return NextResponse.json({ error: false, message: "Deleted" }, { status: 200 });
 }
 

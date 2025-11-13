@@ -20,11 +20,11 @@ export async function GET(req) {
     const department = searchParams.get("department");
     const fromStr = searchParams.get("from");
     const toStr = searchParams.get("to");
-    // Weights (percent-style numbers). Defaults: onTime=45, throughput=40, completion=15, penalty=30
-    const wOnTime = Math.max(0, Math.min(100, Number(searchParams.get("wOnTime")) || 45));
-    const wThroughput = Math.max(0, Math.min(100, Number(searchParams.get("wThroughput")) || 40));
-    const wCompletion = Math.max(0, Math.min(100, Number(searchParams.get("wCompletion")) || 15));
-    const wPenalty = Math.max(0, Math.min(100, Number(searchParams.get("wPenalty")) || 30));
+    // Weights (percent-style numbers). Defaults: completion=50, onTime=30, throughput=20, penalty=0
+    const wOnTime = Math.max(0, Math.min(100, Number(searchParams.get("wOnTime")) || 30));
+    const wThroughput = Math.max(0, Math.min(100, Number(searchParams.get("wThroughput")) || 20));
+    const wCompletion = Math.max(0, Math.min(100, Number(searchParams.get("wCompletion")) || 50));
+    const wPenalty = Math.max(0, Math.min(100, Number(searchParams.get("wPenalty")) || 0));
 
     const now = toStr ? new Date(toStr) : new Date();
     const from = fromStr ? new Date(fromStr) : new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); // default 90 days
