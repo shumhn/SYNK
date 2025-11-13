@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ProductivityTrends from "@/components/admin/dashboard/productivity-trends";
+import DepartmentComparisonChart from "@/components/admin/dashboard/department-comparison-chart";
 
 export default function AnalyticsDashboard() {
   const [scope, setScope] = useState("company");
@@ -221,6 +222,9 @@ export default function AnalyticsDashboard() {
 
         {/* Productivity Trends */}
         <ProductivityTrends scope={scope} refId={scope === "company" ? null : refId} />
+
+        {/* Department Comparison Chart - Only show for company scope */}
+        {scope === "company" && <DepartmentComparisonChart />}
 
         {/* Summary Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
