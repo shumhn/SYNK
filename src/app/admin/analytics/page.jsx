@@ -15,14 +15,23 @@ export default function AnalyticsDashboard() {
   const [dateRange, setDateRange] = useState("30d");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [data, setData] = useState({ totalEmployees: 0, activeProjects: 0, completedTasks: 0, pendingTasks: 0 });
+  const [data, setData] = useState({
+    totalEmployees: 0,
+    activeProjects: 0,
+    completedTasks: 0,
+    pendingTasks: 0,
+  });
   const [departments, setDepartments] = useState([]);
   const [users, setUsers] = useState([]);
+  const [reports, setReports] = useState(null);
+  const [reportsError, setReportsError] = useState("");
 
   const endpoint = useMemo(() => {
     if (scope === "company") return "/api/analytics/hr/company/kpis";
-    if (scope === "department" && refId) return `/api/analytics/hr/department/${refId}/kpis`;
-    if (scope === "employee" && refId) return `/api/analytics/hr/employee/${refId}/kpis`;
+    if (scope === "department" && refId)
+      return `/api/analytics/hr/department/${refId}/kpis`;
+    if (scope === "employee" && refId)
+      return `/api/analytics/hr/employee/${refId}/kpis`;
     return "";
   }, [scope, refId]);
 
@@ -34,7 +43,9 @@ export default function AnalyticsDashboard() {
       "90d": new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
       "1y": new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
     };
-    return ranges[dateRange] ? `?from=${ranges[dateRange].toISOString().split('T')[0]}` : "";
+    return ranges[dateRange]
+      ? `?from=${ranges[dateRange].toISOString().split("T")[0]}`
+      : "";
   }, [dateRange]);
 
   async function fetchData() {
@@ -42,14 +53,117 @@ export default function AnalyticsDashboard() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(endpoint + dateRangeParams, { cache: "no-store" });
+      const res = await fetch(endpoint + dateRangeParams, {
+        cache: "no-store",
+      });
       const json = await res.json();
-      if (!res.ok || json.error) throw new Error(json.message || "Failed to load KPIs");
+      if (!res.ok || json.error)
+        throw new Error(json.message || "Failed to load KPIs");
       setData(json.data || {});
     } catch (e) {
       setError(e.message || "Failed to load KPIs");
     } finally {
       setLoading(false);
+    }
+
+    function ReportCard({ title, icon, accent, report }) {
+      const dirColor =
+        report?.deltas?.direction === "up"
+          ? "text-emerald-400"
+          : report?.deltas?.direction === "down"
+          ? "text-red-400"
+          : "text-gray-300";
+      const rateDir =
+        report?.deltas?.completionRate > 0
+          ? "up"
+          : report?.deltas?.completionRate < 0
+          ? "down"
+          : "stable";
+      const rateColor =
+        rateDir === "up"
+          ? "text-emerald-400"
+          : rateDir === "down"
+          ? "text-red-400"
+          : "text-gray-300";
+      return (
+        <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800/50 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div
+              className={`w-10 h-10 rounded-xl bg-gradient-to-br ${accent} flex items-center justify-center text-xl`}
+            >
+              {icon}
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-semibold text-white">{title}</div>
+              <div className="text-xs text-gray-500">
+                {new Date(report?.range?.from).toLocaleDateString()} –{" "}
+                {new Date(report?.range?.to).toLocaleDateString()}
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-xs text-gray-400">Completed</div>
+              <div className="text-2xl font-bold text-white">
+                {report?.metrics?.completed ?? 0}
+              </div>
+              <div className={`text-xs ${dirColor}`}>
+                {report?.deltas?.completed > 0 ? "+" : ""}
+                {report?.deltas?.completed ?? 0} (
+                {report?.deltas?.completedPct ?? 0}%)
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-400">Created</div>
+              <div className="text-2xl font-bold text-white">
+                {report?.metrics?.created ?? 0}
+              </div>
+              <div className="text-xs text-gray-400">
+                Prev: {report?.comparison?.created ?? 0}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-400">Completion Rate</div>
+              <div className="text-2xl font-bold text-white">
+                {report?.metrics?.completionRate ?? 0}%
+              </div>
+              <div className={`text-xs ${rateColor}`}>
+                {rateDir === "up" ? "+" : ""}
+                {report?.deltas?.completionRate ?? 0} pts
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-400">Avg Completed / Day</div>
+              <div className="text-2xl font-bold text-white">
+                {report?.metrics?.avgCompletedPerDay ?? 0}
+              </div>
+              <div className="text-xs text-gray-400">
+                Prev CR: {report?.comparison?.completionRate ?? 0}%
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    async function fetchReports() {
+      if (scope !== "company") {
+        setReports(null);
+        setReportsError("");
+        return;
+      }
+      try {
+        setReportsError("");
+        const res = await fetch("/api/analytics/hr/company/reports", {
+          cache: "no-store",
+        });
+        const json = await res.json();
+        if (!res.ok || json.error)
+          throw new Error(json.message || "Failed to load reports");
+        setReports(json.data || null);
+      } catch (e) {
+        setReportsError(e.message || "Failed to load reports");
+      }
     }
   }
 
@@ -73,8 +187,16 @@ export default function AnalyticsDashboard() {
     }
   }
 
-  useEffect(() => { fetchData(); }, [endpoint, dateRangeParams]);
-  useEffect(() => { fetchDepartments(); fetchUsers(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, [endpoint, dateRangeParams]);
+  useEffect(() => {
+    fetchDepartments();
+    fetchUsers();
+  }, []);
+  useEffect(() => {
+    fetchReports();
+  }, [scope]);
 
   const completionRate = useMemo(() => {
     const total = data.completedTasks + data.pendingTasks;
@@ -84,11 +206,11 @@ export default function AnalyticsDashboard() {
   const scopeTitle = useMemo(() => {
     if (scope === "company") return "Organization Overview";
     if (scope === "department") {
-      const dept = departments.find(d => d._id === refId);
+      const dept = departments.find((d) => d._id === refId);
       return dept ? `${dept.name} Department` : "Department Analytics";
     }
     if (scope === "employee") {
-      const user = users.find(u => u._id === refId);
+      const user = users.find((u) => u._id === refId);
       return user ? `${user.username} Performance` : "Employee Analytics";
     }
     return "Analytics Dashboard";
@@ -109,8 +231,8 @@ export default function AnalyticsDashboard() {
 
             <div className="flex items-center gap-3">
               {/* Date Range Selector */}
-              <select 
-                value={dateRange} 
+              <select
+                value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
                 className="px-4 py-2.5 bg-neutral-900/80 border border-neutral-700/50 rounded-lg text-sm font-medium text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
               >
@@ -121,9 +243,12 @@ export default function AnalyticsDashboard() {
               </select>
 
               {/* Scope Selector */}
-              <select 
-                value={scope} 
-                onChange={(e) => { setScope(e.target.value); setRefId(""); }} 
+              <select
+                value={scope}
+                onChange={(e) => {
+                  setScope(e.target.value);
+                  setRefId("");
+                }}
                 className="px-4 py-2.5 bg-neutral-900/80 border border-neutral-700/50 rounded-lg text-sm font-medium text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
               >
                 <option value="company">🏢 Company</option>
@@ -133,33 +258,40 @@ export default function AnalyticsDashboard() {
 
               {/* Dynamic ID Selector */}
               {scope === "department" && (
-                <select 
-                  value={refId} 
+                <select
+                  value={refId}
                   onChange={(e) => setRefId(e.target.value)}
                   className="px-4 py-2.5 bg-neutral-900/80 border border-neutral-700/50 rounded-lg text-sm font-medium text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all min-w-[200px]"
                 >
                   <option value="">Select Department</option>
-                  {departments.map(dept => (
-                    <option key={dept._id} value={dept._id}>{dept.name}</option>
+                  {departments.map((dept) => (
+                    <option key={dept._id} value={dept._id}>
+                      {dept.name}
+                    </option>
                   ))}
                 </select>
               )}
 
               {scope === "employee" && (
-                <select 
-                  value={refId} 
+                <select
+                  value={refId}
                   onChange={(e) => setRefId(e.target.value)}
                   className="px-4 py-2.5 bg-neutral-900/80 border border-neutral-700/50 rounded-lg text-sm font-medium text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all min-w-[200px]"
                 >
                   <option value="">Select Employee</option>
-                  {users.map(user => (
-                    <option key={user._id} value={user._id}>{user.username} ({user.email})</option>
+                  {users.map((user) => (
+                    <option key={user._id} value={user._id}>
+                      {user.username} ({user.email})
+                    </option>
                   ))}
                 </select>
               )}
 
-              <button 
-                onClick={fetchData} 
+              <button
+                onClick={() => {
+                  fetchData();
+                  fetchReports();
+                }}
                 disabled={loading}
                 className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-600 disabled:to-gray-700 text-white rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:cursor-not-allowed"
               >
@@ -191,34 +323,34 @@ export default function AnalyticsDashboard() {
 
         {/* KPI Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <KpiCard 
-            label="Total Employees" 
-            value={data.totalEmployees} 
-            icon="👥" 
+          <KpiCard
+            label="Total Employees"
+            value={data.totalEmployees}
+            icon="👥"
             color="from-blue-500 to-cyan-500"
             bgColor="bg-blue-500/10"
             borderColor="border-blue-500/20"
           />
-          <KpiCard 
-            label="Active Projects" 
-            value={data.activeProjects} 
-            icon="📁" 
+          <KpiCard
+            label="Active Projects"
+            value={data.activeProjects}
+            icon="📁"
             color="from-purple-500 to-pink-500"
             bgColor="bg-purple-500/10"
             borderColor="border-purple-500/20"
           />
-          <KpiCard 
-            label="Completed Tasks" 
-            value={data.completedTasks} 
-            icon="✅" 
+          <KpiCard
+            label="Completed Tasks"
+            value={data.completedTasks}
+            icon="✅"
             color="from-green-500 to-emerald-500"
             bgColor="bg-green-500/10"
             borderColor="border-green-500/20"
           />
-          <KpiCard 
-            label="Pending Tasks" 
-            value={data.pendingTasks} 
-            icon="⏳" 
+          <KpiCard
+            label="Pending Tasks"
+            value={data.pendingTasks}
+            icon="⏳"
             color="from-orange-500 to-yellow-500"
             bgColor="bg-orange-500/10"
             borderColor="border-orange-500/20"
@@ -226,30 +358,72 @@ export default function AnalyticsDashboard() {
         </div>
 
         {/* Productivity Trends */}
-        <ProductivityTrends scope={scope} refId={scope === "company" ? null : refId} />
+        <ProductivityTrends
+          scope={scope}
+          refId={scope === "company" ? null : refId}
+        />
+
+        {/* 2.13: Productivity Reports (company scope) */}
+        {scope === "company" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {reportsError && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-sm text-red-300">
+                Failed to load productivity reports: {reportsError}
+              </div>
+            )}
+            {reports?.weekly && (
+              <ReportCard
+                title="Weekly Productivity"
+                icon="📅"
+                accent="from-blue-500 to-cyan-500"
+                report={reports.weekly}
+              />
+            )}
+            {reports?.monthly && (
+              <ReportCard
+                title="Monthly Productivity"
+                icon="🗓️"
+                accent="from-purple-500 to-pink-500"
+                report={reports.monthly}
+              />
+            )}
+          </div>
+        )}
 
         {/* Department Comparison Chart - Only show for company scope */}
         {scope === "company" && <DepartmentComparisonChart />}
 
         {/* HR Scorecards - Company and Department scopes */}
         {(scope === "company" || scope === "department") && (
-          <HRScorecards scope={scope} refId={scope === "department" ? refId : null} />
+          <HRScorecards
+            scope={scope}
+            refId={scope === "department" ? refId : null}
+          />
         )}
 
         {/* Employee Rankings - Company and Department scopes */}
         {(scope === "company" || scope === "department") && (
-          <EmployeeRankings scope={scope} refId={scope === "department" ? refId : null} />
+          <EmployeeRankings
+            scope={scope}
+            refId={scope === "department" ? refId : null}
+          />
         )}
 
         {/* Appraisals Panel - All scopes (shows open cycle progress) */}
         <AppraisalsPanel />
 
         {/* Engagement & Workload - All scopes */}
-        <EngagementWorkload scope={scope} refId={scope === "company" ? null : refId} />
+        <EngagementWorkload
+          scope={scope}
+          refId={scope === "company" ? null : refId}
+        />
 
         {/* Retention Analytics - Company and Department scopes */}
         {(scope === "company" || scope === "department") && (
-          <RetentionAnalytics scope={scope} refId={scope === "department" ? refId : null} />
+          <RetentionAnalytics
+            scope={scope}
+            refId={scope === "department" ? refId : null}
+          />
         )}
 
         {/* Summary Stats */}
@@ -257,7 +431,9 @@ export default function AnalyticsDashboard() {
           {/* Completion Rate */}
           <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800/50 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Task Completion Rate</h3>
+              <h3 className="text-lg font-semibold text-white">
+                Task Completion Rate
+              </h3>
               <span className="text-2xl">📊</span>
             </div>
             <div className="space-y-4">
@@ -265,13 +441,14 @@ export default function AnalyticsDashboard() {
                 {completionRate}%
               </div>
               <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-1000 ease-out"
                   style={{ width: `${completionRate}%` }}
                 />
               </div>
               <p className="text-sm text-gray-400">
-                {data.completedTasks} completed out of {data.completedTasks + data.pendingTasks} total tasks
+                {data.completedTasks} completed out of{" "}
+                {data.completedTasks + data.pendingTasks} total tasks
               </p>
             </div>
           </div>
@@ -279,26 +456,43 @@ export default function AnalyticsDashboard() {
           {/* Workload Distribution */}
           <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800/50 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Workload Distribution</h3>
+              <h3 className="text-lg font-semibold text-white">
+                Workload Distribution
+              </h3>
               <span className="text-2xl">⚖️</span>
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Tasks per Employee</span>
+                <span className="text-sm text-gray-400">
+                  Tasks per Employee
+                </span>
                 <span className="text-xl font-bold text-white">
-                  {data.totalEmployees > 0 ? Math.round((data.completedTasks + data.pendingTasks) / data.totalEmployees) : 0}
+                  {data.totalEmployees > 0
+                    ? Math.round(
+                        (data.completedTasks + data.pendingTasks) /
+                          data.totalEmployees
+                      )
+                    : 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Projects per Employee</span>
+                <span className="text-sm text-gray-400">
+                  Projects per Employee
+                </span>
                 <span className="text-xl font-bold text-white">
-                  {data.totalEmployees > 0 ? Math.round(data.activeProjects / data.totalEmployees * 10) / 10 : 0}
+                  {data.totalEmployees > 0
+                    ? Math.round(
+                        (data.activeProjects / data.totalEmployees) * 10
+                      ) / 10
+                    : 0}
                 </span>
               </div>
               <div className="pt-2 border-t border-neutral-800">
                 <div className="flex items-center gap-2 text-sm">
                   <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                  <span className="text-gray-400">Balanced workload distribution</span>
+                  <span className="text-gray-400">
+                    Balanced workload distribution
+                  </span>
                 </div>
               </div>
             </div>
@@ -307,14 +501,21 @@ export default function AnalyticsDashboard() {
           {/* Performance Insights */}
           <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800/50 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Performance Insights</h3>
+              <h3 className="text-lg font-semibold text-white">
+                Performance Insights
+              </h3>
               <span className="text-2xl">🎯</span>
             </div>
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 <span className="text-sm text-gray-300">
-                  {completionRate >= 80 ? "Excellent" : completionRate >= 60 ? "Good" : "Needs Improvement"} completion rate
+                  {completionRate >= 80
+                    ? "Excellent"
+                    : completionRate >= 60
+                    ? "Good"
+                    : "Needs Improvement"}{" "}
+                  completion rate
                 </span>
               </div>
               <div className="flex items-center gap-3">
@@ -349,21 +550,29 @@ export default function AnalyticsDashboard() {
 
 function KpiCard({ label, value, icon, color, bgColor, borderColor }) {
   return (
-    <div className={`${bgColor} backdrop-blur-xl border ${borderColor} rounded-2xl p-6 hover:scale-[1.02] transition-all duration-300 group`}>
+    <div
+      className={`${bgColor} backdrop-blur-xl border ${borderColor} rounded-2xl p-6 hover:scale-[1.02] transition-all duration-300 group`}
+    >
       <div className="flex items-center justify-between mb-4">
-        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-2xl shadow-lg`}>
+        <div
+          className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-2xl shadow-lg`}
+        >
           {icon}
         </div>
         <div className="text-right">
-          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</div>
+          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {label}
+          </div>
         </div>
       </div>
-      
+
       <div className="space-y-2">
-        <div className={`text-4xl font-bold bg-gradient-to-r ${color} bg-clip-text text-transparent`}>
+        <div
+          className={`text-4xl font-bold bg-gradient-to-r ${color} bg-clip-text text-transparent`}
+        >
           {Number(value || 0).toLocaleString()}
         </div>
-        
+
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 text-xs text-gray-500">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
