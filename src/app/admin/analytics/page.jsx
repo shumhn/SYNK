@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { utils as XLSXUtils, writeFileXLSX } from "xlsx";
 import ProductivityTrends from "@/components/admin/dashboard/productivity-trends";
 import DepartmentComparisonChart from "@/components/admin/dashboard/department-comparison-chart";
 import HRScorecards from "@/components/admin/dashboard/hr-scorecards";
@@ -25,6 +26,12 @@ export default function AnalyticsDashboard() {
   const [users, setUsers] = useState([]);
   const [reports, setReports] = useState(null);
   const [reportsError, setReportsError] = useState("");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [projects, setProjects] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedDeptId, setSelectedDeptId] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState("");
 
   const endpoint = useMemo(() => {
     if (scope === "company") return "/api/analytics/hr/company/kpis";
@@ -65,106 +72,6 @@ export default function AnalyticsDashboard() {
     } finally {
       setLoading(false);
     }
-
-    function ReportCard({ title, icon, accent, report }) {
-      const dirColor =
-        report?.deltas?.direction === "up"
-          ? "text-emerald-400"
-          : report?.deltas?.direction === "down"
-          ? "text-red-400"
-          : "text-gray-300";
-      const rateDir =
-        report?.deltas?.completionRate > 0
-          ? "up"
-          : report?.deltas?.completionRate < 0
-          ? "down"
-          : "stable";
-      const rateColor =
-        rateDir === "up"
-          ? "text-emerald-400"
-          : rateDir === "down"
-          ? "text-red-400"
-          : "text-gray-300";
-      return (
-        <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800/50 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div
-              className={`w-10 h-10 rounded-xl bg-gradient-to-br ${accent} flex items-center justify-center text-xl`}
-            >
-              {icon}
-            </div>
-            <div className="text-right">
-              <div className="text-sm font-semibold text-white">{title}</div>
-              <div className="text-xs text-gray-500">
-                {new Date(report?.range?.from).toLocaleDateString()} –{" "}
-                {new Date(report?.range?.to).toLocaleDateString()}
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-xs text-gray-400">Completed</div>
-              <div className="text-2xl font-bold text-white">
-                {report?.metrics?.completed ?? 0}
-              </div>
-              <div className={`text-xs ${dirColor}`}>
-                {report?.deltas?.completed > 0 ? "+" : ""}
-                {report?.deltas?.completed ?? 0} (
-                {report?.deltas?.completedPct ?? 0}%)
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-400">Created</div>
-              <div className="text-2xl font-bold text-white">
-                {report?.metrics?.created ?? 0}
-              </div>
-              <div className="text-xs text-gray-400">
-                Prev: {report?.comparison?.created ?? 0}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-400">Completion Rate</div>
-              <div className="text-2xl font-bold text-white">
-                {report?.metrics?.completionRate ?? 0}%
-              </div>
-              <div className={`text-xs ${rateColor}`}>
-                {rateDir === "up" ? "+" : ""}
-                {report?.deltas?.completionRate ?? 0} pts
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-400">Avg Completed / Day</div>
-              <div className="text-2xl font-bold text-white">
-                {report?.metrics?.avgCompletedPerDay ?? 0}
-              </div>
-              <div className="text-xs text-gray-400">
-                Prev CR: {report?.comparison?.completionRate ?? 0}%
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    async function fetchReports() {
-      if (scope !== "company") {
-        setReports(null);
-        setReportsError("");
-        return;
-      }
-      try {
-        setReportsError("");
-        const res = await fetch("/api/analytics/hr/company/reports", {
-          cache: "no-store",
-        });
-        const json = await res.json();
-        if (!res.ok || json.error)
-          throw new Error(json.message || "Failed to load reports");
-        setReports(json.data || null);
-      } catch (e) {
-        setReportsError(e.message || "Failed to load reports");
-      }
-    }
   }
 
   async function fetchDepartments() {
@@ -187,16 +94,63 @@ export default function AnalyticsDashboard() {
     }
   }
 
+  async function fetchProjects() {
+    try {
+      const res = await fetch("/api/projects?archived=false");
+      const json = await res.json();
+      if (res.ok && !json.error) setProjects(json.data || []);
+    } catch (e) {
+      // Silent fail for dropdowns
+    }
+  }
+
+  async function fetchReports() {
+    if (scope !== "company") {
+      setReports(null);
+      setReportsError("");
+      return;
+    }
+    try {
+      setReportsError("");
+      const params = new URLSearchParams();
+      if (customFrom && customTo) {
+        params.set("from", customFrom);
+        params.set("to", customTo);
+      }
+      if (selectedUserId) params.set("userId", selectedUserId);
+      if (selectedDeptId) params.set("departmentId", selectedDeptId);
+      if (selectedProjectId) params.set("projectId", selectedProjectId);
+      const url =
+        "/api/analytics/hr/company/reports" +
+        (params.toString() ? `?${params.toString()}` : "");
+      const res = await fetch(url, { cache: "no-store" });
+      const json = await res.json();
+      if (!res.ok || json.error)
+        throw new Error(json.message || "Failed to load reports");
+      setReports(json.data || null);
+    } catch (e) {
+      setReportsError(e.message || "Failed to load reports");
+    }
+  }
+
   useEffect(() => {
     fetchData();
   }, [endpoint, dateRangeParams]);
   useEffect(() => {
     fetchDepartments();
     fetchUsers();
+    fetchProjects();
   }, []);
   useEffect(() => {
     fetchReports();
-  }, [scope]);
+  }, [
+    scope,
+    customFrom,
+    customTo,
+    selectedUserId,
+    selectedDeptId,
+    selectedProjectId,
+  ]);
 
   const completionRate = useMemo(() => {
     const total = data.completedTasks + data.pendingTasks;
@@ -241,6 +195,25 @@ export default function AnalyticsDashboard() {
                 <option value="90d">Last 90 days</option>
                 <option value="1y">Last year</option>
               </select>
+
+              {/* Custom date range (company scope) */}
+              {scope === "company" && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                    className="px-3 py-2 bg-neutral-900/80 border border-neutral-700/50 rounded-lg text-sm text-white"
+                  />
+                  <span className="text-gray-500 text-sm">to</span>
+                  <input
+                    type="date"
+                    value={customTo}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                    className="px-3 py-2 bg-neutral-900/80 border border-neutral-700/50 rounded-lg text-sm text-white"
+                  />
+                </div>
+              )}
 
               {/* Scope Selector */}
               <select
@@ -287,6 +260,53 @@ export default function AnalyticsDashboard() {
                 </select>
               )}
 
+              {/* Report Filters (company scope) */}
+              {scope === "company" && (
+                <div className="flex items-center gap-2">
+                  {/* Filter by Department */}
+                  <select
+                    value={selectedDeptId}
+                    onChange={(e) => setSelectedDeptId(e.target.value)}
+                    className="px-3 py-2 bg-neutral-900/80 border border-neutral-700/50 rounded-lg text-sm text-white min-w-[180px]"
+                  >
+                    <option value="">All Departments</option>
+                    {departments.map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Filter by User */}
+                  <select
+                    value={selectedUserId}
+                    onChange={(e) => setSelectedUserId(e.target.value)}
+                    className="px-3 py-2 bg-neutral-900/80 border border-neutral-700/50 rounded-lg text-sm text-white min-w-[200px]"
+                  >
+                    <option value="">All Users</option>
+                    {users.map((u) => (
+                      <option key={u._id} value={u._id}>
+                        {u.username}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Filter by Project */}
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    className="px-3 py-2 bg-neutral-900/80 border border-neutral-700/50 rounded-lg text-sm text-white min-w-[200px]"
+                  >
+                    <option value="">All Projects</option>
+                    {projects.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <button
                 onClick={() => {
                   fetchData();
@@ -311,52 +331,6 @@ export default function AnalyticsDashboard() {
 
       {/* Main Content */}
       <div className="px-8 py-8 space-y-8">
-        {/* Error State */}
-        {error && (
-          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm font-medium flex items-center gap-3">
-            <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center">
-              <span className="text-xs">⚠️</span>
-            </div>
-            {error}
-          </div>
-        )}
-
-        {/* KPI Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <KpiCard
-            label="Total Employees"
-            value={data.totalEmployees}
-            icon="👥"
-            color="from-blue-500 to-cyan-500"
-            bgColor="bg-blue-500/10"
-            borderColor="border-blue-500/20"
-          />
-          <KpiCard
-            label="Active Projects"
-            value={data.activeProjects}
-            icon="📁"
-            color="from-purple-500 to-pink-500"
-            bgColor="bg-purple-500/10"
-            borderColor="border-purple-500/20"
-          />
-          <KpiCard
-            label="Completed Tasks"
-            value={data.completedTasks}
-            icon="✅"
-            color="from-green-500 to-emerald-500"
-            bgColor="bg-green-500/10"
-            borderColor="border-green-500/20"
-          />
-          <KpiCard
-            label="Pending Tasks"
-            value={data.pendingTasks}
-            icon="⏳"
-            color="from-orange-500 to-yellow-500"
-            bgColor="bg-orange-500/10"
-            borderColor="border-orange-500/20"
-          />
-        </div>
-
         {/* Productivity Trends */}
         <ProductivityTrends
           scope={scope}
@@ -365,7 +339,7 @@ export default function AnalyticsDashboard() {
 
         {/* 2.13: Productivity Reports (company scope) */}
         {scope === "company" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             {reportsError && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-sm text-red-300">
                 Failed to load productivity reports: {reportsError}
@@ -387,11 +361,16 @@ export default function AnalyticsDashboard() {
                 report={reports.monthly}
               />
             )}
+            {reports?.custom && (
+              <ReportCard
+                title="Custom Range Productivity"
+                icon="📈"
+                accent="from-emerald-500 to-green-500"
+                report={reports.custom}
+              />
+            )}
           </div>
         )}
-
-        {/* Department Comparison Chart - Only show for company scope */}
-        {scope === "company" && <DepartmentComparisonChart />}
 
         {/* HR Scorecards - Company and Department scopes */}
         {(scope === "company" || scope === "department") && (
@@ -542,6 +521,409 @@ export default function AnalyticsDashboard() {
               <span className="font-medium">Loading analytics data...</span>
             </div>
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ReportCard({ title, icon, accent, report }) {
+  const dirColor =
+    report?.deltas?.direction === "up"
+      ? "text-emerald-400"
+      : report?.deltas?.direction === "down"
+      ? "text-red-400"
+      : "text-gray-300";
+  const rateDir =
+    report?.deltas?.completionRate > 0
+      ? "up"
+      : report?.deltas?.completionRate < 0
+      ? "down"
+      : "stable";
+  const rateColor =
+    rateDir === "up"
+      ? "text-emerald-400"
+      : rateDir === "down"
+      ? "text-red-400"
+      : "text-gray-300";
+
+  function reportToRows(r) {
+    return [
+      { metric: "label", value: r?.label || "" },
+      { metric: "range.from", value: r?.range?.from || "" },
+      { metric: "range.to", value: r?.range?.to || "" },
+      { metric: "metrics.completed", value: r?.metrics?.completed ?? 0 },
+      { metric: "metrics.created", value: r?.metrics?.created ?? 0 },
+      {
+        metric: "metrics.completionRate",
+        value: r?.metrics?.completionRate ?? 0,
+      },
+      {
+        metric: "metrics.avgCompletedPerDay",
+        value: r?.metrics?.avgCompletedPerDay ?? 0,
+      },
+      { metric: "comparison.completed", value: r?.comparison?.completed ?? 0 },
+      { metric: "comparison.created", value: r?.comparison?.created ?? 0 },
+      {
+        metric: "comparison.completionRate",
+        value: r?.comparison?.completionRate ?? 0,
+      },
+      { metric: "deltas.completed", value: r?.deltas?.completed ?? 0 },
+      { metric: "deltas.completedPct", value: r?.deltas?.completedPct ?? 0 },
+      {
+        metric: "deltas.completionRate",
+        value: r?.deltas?.completionRate ?? 0,
+      },
+      { metric: "deltas.direction", value: r?.deltas?.direction || "stable" },
+    ];
+  }
+
+  function exportReportCSV(r, name) {
+    const rows = reportToRows(r);
+    const header = "metric,value\n";
+    const body = rows
+      .map((x) => `${x.metric},${String(x.value).replaceAll(",", ";")}`)
+      .join("\n");
+    const blob = new Blob([header + body], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${name.replaceAll(" ", "_").toLowerCase()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function exportReportExcel(r, name) {
+    const rows = reportToRows(r);
+    const ws = XLSXUtils.json_to_sheet(rows);
+    const wb = XLSXUtils.book_new();
+    XLSXUtils.book_append_sheet(wb, ws, "Report");
+    writeFileXLSX(wb, `${name.replaceAll(" ", "_").toLowerCase()}.xlsx`);
+  }
+
+  function exportReportPDF(r, name, ttl) {
+    const rows = reportToRows(r);
+    const win = window.open("", "_blank", "width=900,height=700");
+    if (!win) return;
+    const style =
+      "body{font-family:sans-serif;color:#111} table{border-collapse:collapse;width:100%} td,th{border:1px solid #ddd;padding:8px;text-align:left} th{background:#f3f4f6}";
+    const table = `
+      <h2>${ttl}</h2>
+      <p><small>${new Date(r?.range?.from).toLocaleString()} – ${new Date(
+      r?.range?.to
+    ).toLocaleString()}</small></p>
+      <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>
+      ${rows
+        .map((x) => `<tr><td>${x.metric}</td><td>${x.value}</td></tr>`)
+        .join("")}
+      </tbody></table>`;
+    win.document.write(
+      `<html><head><title>${name}</title><style>${style}</style></head><body>${table}</body></html>`
+    );
+    win.document.close();
+    win.focus();
+    win.print();
+  }
+
+  const [aiSummary, setAiSummary] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+
+  async function fetchAiSummary() {
+    try {
+      setAiError("");
+      setAiLoading(true);
+      const res = await fetch("/api/analytics/summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          label: report?.label || title,
+          range: report?.range,
+          metrics: report?.metrics,
+          comparison: report?.comparison,
+          deltas: report?.deltas,
+          filters: {},
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error)
+        throw new Error(json.message || "Failed to get AI summary");
+      setAiSummary(json.data?.summary || "");
+    } catch (e) {
+      setAiError(e.message || "Failed to get AI summary");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  const completionDelta = report?.deltas?.completionRate ?? 0; // change in completion rate (percentage points)
+  const completedDeltaPct = report?.deltas?.completedPct ?? 0;
+  const completedDelta = report?.deltas?.completed ?? 0;
+
+  function buildSummary() {
+    if (!report) return "No data available for this period.";
+
+    const parts = [];
+    const lbl = (report?.label || "").toLowerCase();
+    const period = lbl.includes("week")
+      ? "this week"
+      : lbl.includes("month")
+      ? "this month"
+      : lbl.includes("custom")
+      ? "this range"
+      : "this period";
+    const prevText =
+      period === "this week"
+        ? "last week"
+        : period === "this month"
+        ? "last month"
+        : period === "this range"
+        ? "the previous range"
+        : "the previous period";
+
+    // Treat completion delta as percentage change in productivity for user-facing copy
+    const pctChange = completionDelta; // already percentage points; present as % for simplicity
+    if (pctChange > 0.5) {
+      parts.push(
+        `Productivity improved ${pctChange.toFixed(
+          1
+        )}% ${period} vs ${prevText}.`
+      );
+    } else if (pctChange < -0.5) {
+      parts.push(
+        `Productivity dropped ${Math.abs(pctChange).toFixed(
+          1
+        )}% ${period} vs ${prevText}.`
+      );
+    } else {
+      parts.push(`Productivity was stable ${period} vs ${prevText}.`);
+    }
+
+    // Completed tasks context
+    if (Math.abs(completedDeltaPct) >= 5) {
+      const dir = completedDeltaPct > 0 ? "up" : "down";
+      const pct = Math.round(Math.abs(completedDeltaPct));
+      const signed =
+        completedDelta >= 0 ? `+${completedDelta}` : `${completedDelta}`;
+      parts.push(`Completed tasks are ${dir} ${pct}% (${signed}).`);
+    }
+
+    // Task intake (created) context
+    const createdNow = report?.metrics?.created ?? 0;
+    const createdPrev = report?.comparison?.created ?? 0;
+    const createdDelta = createdNow - createdPrev;
+    if (createdPrev > 0) {
+      const createdPct = (createdDelta / createdPrev) * 100;
+      if (Math.abs(createdPct) >= 5) {
+        const dir = createdPct > 0 ? "increased" : "decreased";
+        parts.push(
+          `Task intake ${dir} by ${Math.round(Math.abs(createdPct))}%.`
+        );
+      }
+    }
+
+    if (!parts.length)
+      return `No significant change detected ${period} vs ${prevText}.`;
+    return parts.join(" ");
+  }
+
+  return (
+    <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800/50 rounded-2xl p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div
+          className={`w-10 h-10 rounded-xl bg-gradient-to-br ${accent} flex items-center justify-center text-xl`}
+        >
+          {icon}
+        </div>
+        <div className="text-right">
+          <div className="text-sm font-semibold text-white">{title}</div>
+          <div className="text-xs text-gray-500">
+            {new Date(report?.range?.from).toLocaleDateString()} –{" "}
+            {new Date(report?.range?.to).toLocaleDateString()}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="px-3 py-1.5 bg-neutral-900/80 border border-neutral-700/50 rounded text-xs text-white"
+            onClick={() => exportReportCSV(report, title)}
+          >
+            CSV
+          </button>
+          <button
+            className="px-3 py-1.5 bg-neutral-900/80 border border-neutral-700/50 rounded text-xs text-white"
+            onClick={() => exportReportExcel(report, title)}
+          >
+            Excel
+          </button>
+          <button
+            className="px-3 py-1.5 bg-neutral-900/80 border border-neutral-700/50 rounded text-xs text-white"
+            onClick={() => exportReportPDF(report, title, title)}
+          >
+            PDF
+          </button>
+          <button
+            className="px-3 py-1.5 bg-neutral-900/80 border border-neutral-700/50 rounded text-xs text-white"
+            onClick={fetchAiSummary}
+            disabled={aiLoading}
+          >
+            {aiLoading ? "AI…" : "AI Summary"}
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <div className="text-xs text-gray-400">Completed</div>
+          <div className="text-2xl font-bold text-white">
+            {report?.metrics?.completed ?? 0}
+          </div>
+          <div className={`text-xs ${dirColor}`}>
+            {report?.deltas?.completed > 0 ? "+" : ""}
+            {report?.deltas?.completed ?? 0} (
+            {report?.deltas?.completedPct ?? 0}%)
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-gray-400">Created</div>
+          <div className="text-2xl font-bold text-white">
+            {report?.metrics?.created ?? 0}
+          </div>
+          <div className="text-xs text-gray-400">
+            Prev: {report?.comparison?.created ?? 0}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-gray-400">Completion Rate</div>
+          <div className="text-2xl font-bold text-white">
+            {report?.metrics?.completionRate ?? 0}%
+          </div>
+          <div className={`text-xs ${rateColor}`}>
+            {rateDir === "up" ? "+" : ""}
+            {report?.deltas?.completionRate ?? 0} pts
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-gray-400">Avg Completed / Day</div>
+          <div className="text-2xl font-bold text-white">
+            {report?.metrics?.avgCompletedPerDay ?? 0}
+          </div>
+          <div className="text-xs text-gray-400">
+            Prev CR: {report?.comparison?.completionRate ?? 0}%
+          </div>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-4">
+        <div className="bg-neutral-950/40 border border-neutral-800/50 rounded-lg p-3">
+          <div className="text-xs text-gray-400 mb-2">Completed vs Created</div>
+          {(() => {
+            const completed = Number(report?.metrics?.completed ?? 0);
+            const created = Number(report?.metrics?.created ?? 0);
+            const max = Math.max(1, completed, created);
+            const cW = Math.max(2, Math.round((completed / max) * 100));
+            const crW = Math.max(2, Math.round((created / max) * 100));
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                  <div className="flex-1 h-2 bg-emerald-600/30 rounded">
+                    <div
+                      className="h-2 bg-emerald-500 rounded"
+                      style={{ width: `${cW}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <div className="flex-1 h-2 bg-blue-600/30 rounded">
+                    <div
+                      className="h-2 bg-blue-500 rounded"
+                      style={{ width: `${crW}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+        <div className="bg-neutral-950/40 border border-neutral-800/50 rounded-lg p-3 flex items-center justify-center">
+          {(() => {
+            const rate = Math.max(
+              0,
+              Math.min(100, Number(report?.metrics?.completionRate ?? 0))
+            );
+            const size = 64;
+            const stroke = 8;
+            const r = (size - stroke) / 2;
+            const c = 2 * Math.PI * r;
+            const offset = c - (rate / 100) * c;
+            return (
+              <svg width={size} height={size} className="rotate-[-90deg]">
+                <circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={r}
+                  stroke="#2b2b2b"
+                  strokeWidth={stroke}
+                  fill="none"
+                />
+                <circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={r}
+                  stroke="#10b981"
+                  strokeWidth={stroke}
+                  fill="none"
+                  strokeDasharray={`${c} ${c}`}
+                  strokeDashoffset={offset}
+                  strokeLinecap="round"
+                />
+                <g transform={`rotate(90 ${size / 2} ${size / 2})`}>
+                  <text
+                    x="50%"
+                    y="50%"
+                    dominantBaseline="middle"
+                    textAnchor="middle"
+                    fontSize="12"
+                    fill="#e5e7eb"
+                  >
+                    {rate}%
+                  </text>
+                </g>
+              </svg>
+            );
+          })()}
+        </div>
+        <div className="bg-neutral-950/40 border border-neutral-800/50 rounded-lg p-3">
+          <div className="text-xs text-gray-400 mb-2">Prev vs Current</div>
+          {(() => {
+            const prevVal = Number(report?.comparison?.completed ?? 0);
+            const currVal = Number(report?.metrics?.completed ?? 0);
+            const max = Math.max(1, prevVal, currVal);
+            const w = 120,
+              h = 40,
+              pad = 4;
+            const yPrev = h - pad - (prevVal / max) * (h - 2 * pad);
+            const yCurr = h - pad - (currVal / max) * (h - 2 * pad);
+            const path = `M ${pad},${yPrev} L ${w - pad},${yCurr}`;
+            const area = `M ${pad},${h - pad} L ${pad},${yPrev} L ${
+              w - pad
+            },${yCurr} L ${w - pad},${h - pad} Z`;
+            return (
+              <svg width={w} height={h}>
+                <path d={area} fill="rgba(59,130,246,0.15)" />
+                <path d={path} stroke="#60a5fa" strokeWidth="2" fill="none" />
+                <circle cx={pad} cy={yPrev} r="2" fill="#93c5fd" />
+                <circle cx={w - pad} cy={yCurr} r="2" fill="#93c5fd" />
+              </svg>
+            );
+          })()}
+        </div>
+      </div>
+      {aiError && <div className="mt-3 text-xs text-red-400">{aiError}</div>}
+      <div className="mt-4 border-t border-neutral-800 pt-3 text-xs leading-relaxed">
+        {aiSummary ? (
+          <div className="text-emerald-300">{aiSummary}</div>
+        ) : (
+          <div className="text-gray-300">{buildSummary()}</div>
         )}
       </div>
     </div>
