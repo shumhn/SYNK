@@ -656,6 +656,22 @@ function ReportCard({ title, icon, accent, report }) {
     }
   }
 
+  useEffect(() => {
+    // Auto-refresh AI summary when the underlying report changes
+    setAiSummary("");
+    setAiError("");
+    if (!report) return;
+    fetchAiSummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    report?.label,
+    report?.range?.from,
+    report?.range?.to,
+    report?.metrics?.completed,
+    report?.metrics?.created,
+    report?.metrics?.completionRate,
+  ]);
+
   const completionDelta = report?.deltas?.completionRate ?? 0; // change in completion rate (percentage points)
   const completedDeltaPct = report?.deltas?.completedPct ?? 0;
   const completedDelta = report?.deltas?.completed ?? 0;
