@@ -2,38 +2,31 @@
   "crons": [
     {
       "path": "/api/admin/reports/dispatch?token=8cf75ed9ce0181e0a4c667cce1ee05416904be0e3ab71dc782557c41113c54ee&period=weekly",
-      "schedule": "0 3 * * 1",
-      "method": "POST"
+      "schedule": "0 3 * * 1"
     },
     {
       "path": "/api/admin/reports/dispatch?token=8cf75ed9ce0181e0a4c667cce1ee05416904be0e3ab71dc782557c41113c54ee&period=monthly",
-      "schedule": "0 3 1 * *",
-      "method": "POST"
+      "schedule": "0 3 1 * *"
     },
     {
       "path": "/api/admin/automation/reminders?token=8cf75ed9ce0181e0a4c667cce1ee05416904be0e3ab71dc782557c41113c54ee",
-      "schedule": "0 2 * * *",
-      "method": "POST"
+      "schedule": "0 2 * * *"
     },
     {
       "path": "/api/admin/automation/archive-projects?token=8cf75ed9ce0181e0a4c667cce1ee05416904be0e3ab71dc782557c41113c54ee&days=30",
-      "schedule": "0 4 * * 0",
-      "method": "POST"
+      "schedule": "0 4 * * 0"
     },
     {
       "path": "/api/admin/automation/escalate-overdue?token=8cf75ed9ce0181e0a4c667cce1ee05416904be0e3ab71dc782557c41113c54ee",
-      "schedule": "0 1 * * *",
-      "method": "POST"
+      "schedule": "0 1 * * *"
     },
     {
       "path": "/api/admin/automation/generate-recurring?token=8cf75ed9ce0181e0a4c667cce1ee05416904be0e3ab71dc782557c41113c54ee",
-      "schedule": "0 0 * * *",
-      "method": "POST"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/admin/automation/daily-digests?token=8cf75ed9ce0181e0a4c667cce1ee05416904be0e3ab71dc782557c41113c54ee",
-      "schedule": "0 6 * * *",
-      "method": "POST"
+      "schedule": "0 6 * * *"
     }
   ]
 }
