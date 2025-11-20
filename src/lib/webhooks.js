@@ -36,3 +36,96 @@ export async function broadcastWebhooks(message) {
     sendDiscordWebhook(message),
   ]);
 }
+
+/**
+ * Trigger all webhooks registered for a specific event
+ * @param {string} eventType - e.g., "task.completed", "project.created"
+ * @param {object} payload - Event data to send
+ */
+export async function triggerWebhooks(eventType, payload) {
+  await connectToDatabase();
+  const Webhook = (await import("@/models/Webhook")).default;
+  const crypto = await import("crypto");
+
+  // Find all active webhooks for this event
+  const webhooks = await Webhook.find({
+    active: true,
+    events: eventType,
+  }).lean();
+
+  if (!webhooks.length) return;
+
+  const results = [];
+
+  for (const webhook of webhooks) {
+    let attempt = 0;
+    let success = false;
+
+    while (attempt < webhook.retryAttempts && !success) {
+      attempt++;
+
+      try {
+        const body = JSON.stringify({
+          event: eventType,
+          timestamp: new Date().toISOString(),
+          data: payload,
+        });
+
+        const headers = {
+          "Content-Type": "application/json",
+          "User-Agent": "ZPB-Webhook/1.0",
+          ...Object.fromEntries(webhook.headers || []),
+        };
+
+        // Add HMAC signature if secret is configured
+        if (webhook.secret) {
+          const signature = crypto
+            .createHmac("sha256", webhook.secret)
+            .update(body)
+            .digest("hex");
+          headers["X-Webhook-Signature"] = signature;
+        }
+
+        const response = await fetch(webhook.url, {
+          method: "POST",
+          headers,
+          body,
+          signal: AbortSignal.timeout(10000), // 10s timeout
+        });
+
+        if (response.ok) {
+          success = true;
+          // Update lastTriggered
+          await Webhook.updateOne(
+            { _id: webhook._id },
+            { $set: { lastTriggered: new Date() } }
+          );
+        } else {
+          console.error(
+            `Webhook ${webhook.name} failed (attempt ${attempt}): ${response.status} ${response.statusText}`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Webhook ${webhook.name} error (attempt ${attempt}):`,
+          error.message
+        );
+      }
+
+      // Wait before retry (exponential backoff)
+      if (!success && attempt < webhook.retryAttempts) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.pow(2, attempt) * 1000)
+        );
+      }
+    }
+
+    results.push({ webhook: webhook.name, success, attempts: attempt });
+  }
+
+  console.log(
+    `Triggered ${results.length} webhook(s) for event: ${eventType}`,
+    results
+  );
+  return results;
+}

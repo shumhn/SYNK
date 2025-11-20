@@ -2,7 +2,12 @@ import mongoose from "mongoose";
 
 const NotificationSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     type: {
       type: String,
       required: true,
@@ -19,13 +24,20 @@ const NotificationSchema = new mongoose.Schema(
         "user_approved", // user account approved
         "user_rejected", // user account rejected
         "role_assigned", // new role assigned to user
+        "deadline_reminder", // automated deadline reminder
+        "overdue_escalation", // overdue task escalation
+        "task_completed", // task marked as completed
+        "file_uploaded", // file uploaded to task/project
       ],
       index: true,
     },
     title: { type: String, required: true },
     message: String,
     actor: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Who triggered this notification
-    refType: { type: String, enum: ["Task", "Project", "ProjectMessage", "TaskComment", "User"] },
+    refType: {
+      type: String,
+      enum: ["Task", "Project", "ProjectMessage", "TaskComment", "User"],
+    },
     refId: mongoose.Schema.Types.ObjectId, // Reference to the related object
     metadata: mongoose.Schema.Types.Mixed, // Additional context
     readAt: Date,
@@ -40,4 +52,5 @@ NotificationSchema.index({ user: 1, isRead: 1, createdAt: -1 }); // Unread notif
 NotificationSchema.index({ user: 1, createdAt: -1 }); // All notifications
 NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 }); // Auto-delete after 30 days
 
-export default mongoose.models.Notification || mongoose.model("Notification", NotificationSchema);
+export default mongoose.models.Notification ||
+  mongoose.model("Notification", NotificationSchema);
