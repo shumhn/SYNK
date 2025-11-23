@@ -9,6 +9,8 @@ import { requireRoles } from "@/lib/auth/guard";
 import { broadcastEvent } from "@/app/api/events/subscribe/route";
 import AuditLog from "@/models/AuditLog";
 import { notifyTaskAssignment } from "@/lib/notifications";
+import { triggerWebhooks } from "@/lib/webhooks";
+import { syncTaskToCalendar } from "@/lib/calendar-sync";
 
 export async function GET(req, { params }) {
   const auth = await requireRoles(["admin", "hr", "manager", "employee"]);
@@ -204,6 +206,28 @@ export async function POST(req, { params }) {
       }
     }
   } catch (e) {}
+
+  // Trigger webhooks for task creation
+  try {
+    triggerWebhooks("task.created", {
+      taskId: created._id.toString(),
+      title: created.title,
+      status: created.status,
+      priority: created.priority,
+      project: created.project.toString(),
+      assignee: created.assignee?.toString(),
+      dueDate: created.dueDate,
+    }).catch((err) => {
+      console.error("Failed to trigger task.created webhooks:", err);
+    });
+  } catch (e) {}
+
+  // Sync to Google Calendar if user has it connected
+  if (created.assignee && created.dueDate) {
+    syncTaskToCalendar(created, created.assignee, "create").catch((err) => {
+      console.error("Calendar sync error:", err);
+    });
+  }
 
   return NextResponse.json({ error: false, data: created }, { status: 201 });
 }

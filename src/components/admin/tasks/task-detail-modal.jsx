@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import SubtaskTree from "./subtask-tree";
 import getPusherClient from "@/lib/pusher/client";
 import ThreadedComments from "./threaded-comments";
+import TaskTimer from "@/components/tasks/task-timer";
 
 export default function TaskDetailModal({ task, onClose }) {
   const router = useRouter();
@@ -332,7 +333,10 @@ export default function TaskDetailModal({ task, onClose }) {
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-neutral-900 rounded max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{task.title}</h2>
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold">{task.title}</h2>
+            <TaskTimer taskId={task._id} projectId={task.project?._id || task.project} />
+          </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white">✕</button>
         </div>
 

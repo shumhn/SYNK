@@ -19,13 +19,22 @@ export async function PUT(request) {
 
   await connectToDatabase();
   const body = await request.json();
-  const { slackWebhookUrl = "", discordWebhookUrl = "" } = body || {};
+  const {
+    slackWebhookUrl = "",
+    discordWebhookUrl = "",
+    telegramBotToken = "",
+    telegramChatId = ""
+  } = body || {};
 
   let doc = await IntegrationSettings.findOne();
-  if (!doc) doc = new IntegrationSettings({});
+  if (!doc) {
+    doc = await IntegrationSettings.create({});
+  }
 
   doc.slackWebhookUrl = slackWebhookUrl?.trim() || "";
   doc.discordWebhookUrl = discordWebhookUrl?.trim() || "";
+  doc.telegramBotToken = telegramBotToken?.trim() || "";
+  doc.telegramChatId = telegramChatId?.trim() || "";
   doc.updatedBy = auth.user._id;
   await doc.save();
 

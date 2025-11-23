@@ -16,6 +16,13 @@ const authOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      authorization: {
+        params: {
+          scope: "openid email profile https://www.googleapis.com/auth/calendar.events",
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
     }),
     CredentialsProvider({
       name: "Email & Password",
@@ -139,6 +146,28 @@ const authOptions = {
 
         // Store sessionId in token for later use
         token.sessionId = sessionId;
+
+        // Store Google Calendar tokens for calendar sync
+        if (account.access_token) {
+          try {
+            const CalendarConnection = (await import("@/models/CalendarConnection")).default;
+            await CalendarConnection.findOneAndUpdate(
+              { user: existingUser._id, provider: "google" },
+              {
+                user: existingUser._id,
+                provider: "google",
+                accessToken: account.access_token,
+                refreshToken: account.refresh_token,
+                tokenExpiry: account.expires_at ? new Date(account.expires_at * 1000) : null,
+                active: true,
+                syncEnabled: true,
+              },
+              { upsert: true, new: true }
+            );
+          } catch (e) {
+            console.error("Failed to store calendar tokens:", e);
+          }
+        }
 
         return token;
       }

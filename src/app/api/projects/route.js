@@ -7,6 +7,7 @@ import User from "@/models/User";
 import AuditLog from "@/models/AuditLog";
 import { requireRoles } from "@/lib/auth/guard";
 import { broadcastEvent } from "@/app/api/events/subscribe/route";
+import { triggerWebhooks } from "@/lib/webhooks";
 
 export async function GET(req) {
   const auth = await requireRoles(["admin", "hr", "manager"]);
@@ -102,6 +103,20 @@ export async function POST(req) {
       status: "success",
     });
   } catch {}
+  
+  // Trigger webhooks for project creation
+  try {
+    triggerWebhooks("project.created", {
+      projectId: created._id.toString(),
+      title: created.title,
+      startDate: created.startDate,
+      endDate: created.endDate,
+      departments: created.departments.map(d => d.toString()),
+      managers: created.managers.map(m => m.toString()),
+    }).catch((err) => {
+      console.error("Failed to trigger project.created webhooks:", err);
+    });
+  } catch (e) {}
   
   return NextResponse.json({ error: false, data: { id: created._id } }, { status: 201 });
 }

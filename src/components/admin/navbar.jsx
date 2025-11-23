@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import NotificationBell from "@/components/notifications/notification-bell";
+import AttendanceWidget from "@/components/attendance/attendance-widget";
 
 export default function AdminNavbar() {
   const router = useRouter();
@@ -70,10 +71,25 @@ export default function AdminNavbar() {
           <Link href="/admin/messages" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/messages") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Messages</Link>
           <Link href="/admin/channels" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/channels") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Channels</Link>
           <Link href="/admin/files" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/files") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Files</Link>
+          <Link href="/admin/audit" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/audit") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Audit</Link>
           <Link href="/admin/settings/task-types" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/settings/task-types") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Types</Link>
           <Link href="/admin/settings" className={`px-3 py-2 rounded-lg text-sm font-medium transition ${isActive("/admin/settings") ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-900/50"}`}>Settings</Link>
         </div>
         <div className="flex items-center gap-3">
+          {/* Attendance Widget Popover */}
+          <div className="relative group">
+            <button className="p-2 text-neutral-400 hover:text-white transition rounded-lg hover:bg-neutral-800">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+            <div className="absolute right-0 mt-2 w-72 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="pt-2"> {/* Spacer for hover bridge */}
+                <AttendanceWidget />
+              </div>
+            </div>
+          </div>
+
           <NotificationBell />
           
           {/* User Profile Dropdown */}

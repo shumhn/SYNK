@@ -9,6 +9,8 @@ import EmployeeRankings from "@/components/admin/dashboard/employee-rankings";
 import EngagementWorkload from "@/components/admin/dashboard/engagement-workload";
 import RetentionAnalytics from "@/components/admin/dashboard/retention-analytics";
 import AppraisalsPanel from "@/components/admin/dashboard/appraisals-panel";
+import ComparativeTrends from "@/components/admin/dashboard/comparative-trends";
+import AIInsightsPanel from "@/components/admin/dashboard/ai-insights-panel";
 
 export default function AnalyticsDashboard() {
   const [scope, setScope] = useState("company");
@@ -331,6 +333,9 @@ export default function AnalyticsDashboard() {
 
       {/* Main Content */}
       <div className="px-8 py-8 space-y-8">
+        {/* AI Insights Panel */}
+        <AIInsightsPanel scope={scope} refId={refId} />
+
         {/* Productivity Trends */}
         <ProductivityTrends
           scope={scope}
@@ -338,37 +343,42 @@ export default function AnalyticsDashboard() {
         />
 
         {/* 2.13: Productivity Reports (company scope) */}
+        {/* 2.13: Productivity Reports (company scope) */}
         {scope === "company" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            {reportsError && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-sm text-red-300">
-                Failed to load productivity reports: {reportsError}
-              </div>
-            )}
-            {reports?.weekly && (
-              <ReportCard
-                title="Weekly Productivity"
-                icon="📅"
-                accent="from-blue-500 to-cyan-500"
-                report={reports.weekly}
-              />
-            )}
-            {reports?.monthly && (
-              <ReportCard
-                title="Monthly Productivity"
-                icon="🗓️"
-                accent="from-purple-500 to-pink-500"
-                report={reports.monthly}
-              />
-            )}
-            {reports?.custom && (
-              <ReportCard
-                title="Custom Range Productivity"
-                icon="📈"
-                accent="from-emerald-500 to-green-500"
-                report={reports.custom}
-              />
-            )}
+          <div className="space-y-8">
+            <ComparativeTrends />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {reportsError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-sm text-red-300">
+                  Failed to load productivity reports: {reportsError}
+                </div>
+              )}
+              {reports?.weekly && (
+                <ReportCard
+                  title="Weekly Productivity"
+                  icon="📅"
+                  accent="from-blue-500 to-cyan-500"
+                  report={reports.weekly}
+                />
+              )}
+              {reports?.monthly && (
+                <ReportCard
+                  title="Monthly Productivity"
+                  icon="🗓️"
+                  accent="from-purple-500 to-pink-500"
+                  report={reports.monthly}
+                />
+              )}
+              {reports?.custom && (
+                <ReportCard
+                  title="Custom Range Productivity"
+                  icon="📈"
+                  accent="from-emerald-500 to-green-500"
+                  report={reports.custom}
+                />
+              )}
+            </div>
           </div>
         )}
 

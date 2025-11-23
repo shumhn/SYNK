@@ -14,9 +14,12 @@
     "test:all": "node tests/run-all-tests.js"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "@tailwindcss/typography": "^0.5.19",
     "bcrypt": "^6.0.0",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
+    "googleapis": "^166.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.1",
     "next": "15.5.5",

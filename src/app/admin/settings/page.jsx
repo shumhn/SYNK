@@ -46,6 +46,44 @@ export default function SettingsPage() {
             </div>
           </div>
         </Link>
+
+        <Link
+          href="/admin/settings/webhooks"
+          className="group p-6 rounded-xl bg-neutral-900/50 border border-neutral-800/50 hover:bg-neutral-900 hover:border-neutral-700 transition"
+        >
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/20 transition">
+              <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="font-semibold text-white mb-1">Webhooks</h2>
+              <p className="text-sm text-neutral-400">
+                Connect with Zapier, n8n, and automation tools
+              </p>
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          href="/admin/audit"
+          className="group p-6 rounded-xl bg-neutral-900/50 border border-neutral-800/50 hover:bg-neutral-900 hover:border-neutral-700 transition"
+        >
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-orange-500/20 transition">
+              <svg className="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="font-semibold text-white mb-1">Audit Logs</h2>
+              <p className="text-sm text-neutral-400">
+                View detailed system activity and security events
+              </p>
+            </div>
+          </div>
+        </Link>
       </div>
     </div>
   );

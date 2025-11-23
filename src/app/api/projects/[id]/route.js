@@ -9,6 +9,7 @@ import User from "@/models/User";
 import { requireRoles } from "@/lib/auth/guard";
 import AuditLog from "@/models/AuditLog";
 import { broadcastEvent } from "@/app/api/events/subscribe/route";
+import { triggerWebhooks } from "@/lib/webhooks";
 
 function badId() {
   return NextResponse.json({ error: true, message: "Invalid project id" }, { status: 400 });
@@ -132,6 +133,19 @@ export async function PATCH(req, { params }) {
       });
     }
   } catch {}
+  
+  // Trigger webhooks for project update
+  try {
+    triggerWebhooks("project.updated", {
+      projectId: updated._id.toString(),
+      title: updated.title,
+      status: updated.status,
+      progress: updated.progress,
+    }).catch((err) => {
+      console.error("Failed to trigger project.updated webhooks:", err);
+    });
+  } catch (e) {}
+  
   return NextResponse.json({ error: false, data: updated }, { status: 200 });
 }
 
@@ -162,6 +176,16 @@ export async function DELETE(_req, { params }) {
   try {
     broadcastEvent({ type: "project-deleted", projectId: id });
   } catch {}
+  
+  // Trigger webhooks for project deletion
+  try {
+    triggerWebhooks("project.deleted", {
+      projectId: project._id.toString(),
+      title: project.title,
+    }).catch((err) => {
+      console.error("Failed to trigger project.deleted webhooks:", err);
+    });
+  } catch (e) {}
   
   return NextResponse.json({ error: false, message: "Project deleted" }, { status: 200 });
 }

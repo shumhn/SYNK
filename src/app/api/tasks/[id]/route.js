@@ -8,6 +8,7 @@ import { broadcastEvent } from "@/app/api/events/subscribe/route";
 import AuditLog from "@/models/AuditLog";
 import { notifyTaskCompletion } from "@/lib/notifications";
 import { triggerWebhooks } from "@/lib/webhooks";
+import { syncTaskToCalendar } from "@/lib/calendar-sync";
 
 function badId() {
   return NextResponse.json(
@@ -334,6 +335,13 @@ export async function PATCH(req, { params }) {
       });
     }
   } catch (e) {}
+
+  // Sync to Google Calendar if user has it connected
+  if (updated.assignee && updated.dueDate) {
+    syncTaskToCalendar(updated, updated.assignee, "update").catch((err) => {
+      console.error("Calendar sync error:", err);
+    });
+  }
 
   return NextResponse.json({ error: false, data: updated }, { status: 200 });
 }

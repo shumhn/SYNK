@@ -29,11 +29,28 @@ export async function sendDiscordWebhook(message) {
   }).catch(() => {});
 }
 
+export async function sendTelegramMessage(message) {
+  const settings = await getSettings();
+  if (!settings.telegramBotToken || !settings.telegramChatId) return;
+  
+  const url = `https://api.telegram.org/bot${settings.telegramBotToken}/sendMessage`;
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: settings.telegramChatId,
+      text: message,
+      parse_mode: "HTML"
+    }),
+  }).catch(() => {});
+}
+
 export async function broadcastWebhooks(message) {
   // fire-and-forget
   await Promise.allSettled([
     sendSlackWebhook(message),
     sendDiscordWebhook(message),
+    sendTelegramMessage(message),
   ]);
 }
 
