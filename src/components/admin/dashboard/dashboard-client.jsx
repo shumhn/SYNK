@@ -45,12 +45,6 @@ export default function DashboardClient({
   // Activity + Distribution helpers
   function iconForAction(action) {
     if (!action) return "•";
-    if (action.includes("login")) return "🔐";
-    if (action.includes("2fa")) return "🛡";
-    if (action.includes("user_")) return "👤";
-    if (action.includes("project_")) return "📁";
-    if (action.includes("task_")) return "✅";
-    if (action.includes("role") || action.includes("permission")) return "🔧";
     return "•";
   }
 
@@ -286,7 +280,7 @@ export default function DashboardClient({
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">📊 Dashboard</h1>
+          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
           <p className="text-sm text-gray-400 mt-1">Overall team and task health overview</p>
         </div>
         <div className="text-sm text-gray-500">
@@ -299,28 +293,28 @@ export default function DashboardClient({
         <div className="bg-gradient-to-br from-indigo-900/20 to-indigo-950/10 border border-indigo-800/30 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">Total Employees</span>
-            <span className="text-2xl">👥</span>
+
           </div>
           <div className="text-3xl font-bold text-white">{overview.employees ?? metrics.totalEmployees ?? 0}</div>
         </div>
         <div className="bg-gradient-to-br from-purple-900/20 to-purple-950/10 border border-purple-800/30 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">Total Teams</span>
-            <span className="text-2xl">🧩</span>
+
           </div>
           <div className="text-3xl font-bold text-white">{overview.teams ?? metrics.totalTeams ?? 0}</div>
         </div>
         <div className="bg-gradient-to-br from-emerald-900/20 to-emerald-950/10 border border-emerald-800/30 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">Total Projects</span>
-            <span className="text-2xl">📁</span>
+
           </div>
           <div className="text-3xl font-bold text-white">{overview.projects ?? metrics.totalProjects ?? 0}</div>
         </div>
         <div className="bg-gradient-to-br from-blue-900/20 to-blue-950/10 border border-blue-800/30 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">Total Tasks</span>
-            <span className="text-2xl">📋</span>
+
           </div>
           <div className="text-3xl font-bold text-white">{overview.tasks ?? metrics.totalTasks ?? 0}</div>
         </div>
@@ -332,7 +326,7 @@ export default function DashboardClient({
         <div className="bg-gradient-to-br from-blue-900/20 to-blue-950/10 border border-blue-800/30 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">Total Tasks</span>
-            <span className="text-2xl">📋</span>
+
           </div>
           <div className="text-3xl font-bold text-white mb-1">{metrics.totalTasks}</div>
           <div className="text-xs text-gray-500">
@@ -344,7 +338,7 @@ export default function DashboardClient({
         <div className="bg-gradient-to-br from-green-900/20 to-green-950/10 border border-green-800/30 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">Completion Rate</span>
-            <span className="text-2xl">✓</span>
+
           </div>
           <div className="text-3xl font-bold text-white mb-1">{completionRate}%</div>
           <div className="text-xs text-gray-500">
@@ -356,7 +350,7 @@ export default function DashboardClient({
         <div className="bg-gradient-to-br from-purple-900/20 to-purple-950/10 border border-purple-800/30 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">In Progress</span>
-            <span className="text-2xl">🚀</span>
+
           </div>
           <div className="text-3xl font-bold text-white mb-1">{metrics.inProgressTasks}</div>
           <div className="text-xs text-gray-500">
@@ -368,7 +362,7 @@ export default function DashboardClient({
         <div className="bg-gradient-to-br from-red-900/20 to-red-950/10 border border-red-800/30 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">Issues</span>
-            <span className="text-2xl">⚠️</span>
+
           </div>
           <div className="text-3xl font-bold text-white mb-1">
             {metrics.blockedTasks + metrics.overdueTasks}
@@ -385,7 +379,7 @@ export default function DashboardClient({
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">Company Completion Rate</span>
-            <span className="text-2xl">🏁</span>
+
           </div>
           <div className="text-3xl font-bold text-white">{metrics.completionRateCompany ?? 0}%</div>
           <div className="text-xs text-gray-500">Overall across all tasks</div>
@@ -394,7 +388,7 @@ export default function DashboardClient({
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">Average Productivity</span>
-            <span className="text-2xl">⚙️</span>
+
           </div>
           <div className="text-3xl font-bold text-white">{metrics.avgProductivityPerUserWeek ?? 0}</div>
           <div className="text-xs text-gray-500">Tasks per person per week (90d)</div>
@@ -403,7 +397,7 @@ export default function DashboardClient({
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">Efficiency Index</span>
-            <span className="text-2xl">📈</span>
+
           </div>
           <div className="text-3xl font-bold text-white">{metrics.efficiencyIndex ?? 0}</div>
           <div className="text-xs text-gray-500">Composite of completion, on-time, productivity</div>
@@ -416,7 +410,7 @@ export default function DashboardClient({
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-white">Weekly Velocity</h3>
-            <span className="text-lg">📈</span>
+
           </div>
           <div className="text-2xl font-bold text-blue-400 mb-2">{weeklyVelocity}</div>
           <div className="text-xs text-gray-400">Tasks completed this week</div>
@@ -424,7 +418,7 @@ export default function DashboardClient({
             <div className="flex justify-between text-xs">
               <span className="text-gray-500">Target: 20/week</span>
               <span className={weeklyVelocity >= 20 ? "text-green-400" : "text-orange-400"}>
-                {weeklyVelocity >= 20 ? "✓ On track" : "⚠ Below target"}
+                {weeklyVelocity >= 20 ? "On track" : "Below target"}
               </span>
             </div>
           </div>
@@ -434,7 +428,7 @@ export default function DashboardClient({
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-white">Project Health</h3>
-            <span className="text-lg">🎯</span>
+
           </div>
           <div className="text-2xl font-bold text-green-400 mb-2">{projectHealth}%</div>
           <div className="text-xs text-gray-400">{metrics.activeProjects} active projects</div>
@@ -442,7 +436,7 @@ export default function DashboardClient({
             <div className="flex justify-between text-xs">
               <span className="text-gray-500">At risk: {metrics.atRiskProjects}</span>
               <span className={metrics.atRiskProjects === 0 ? "text-green-400" : "text-red-400"}>
-                {metrics.atRiskProjects === 0 ? "✓ All healthy" : "⚠ Needs attention"}
+                {metrics.atRiskProjects === 0 ? "All healthy" : "Needs attention"}
               </span>
             </div>
           </div>
@@ -452,7 +446,7 @@ export default function DashboardClient({
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-white">Team Members</h3>
-            <span className="text-lg">👥</span>
+
           </div>
           <div className="text-2xl font-bold text-purple-400 mb-2">{metrics.totalUsers}</div>
           <div className="text-xs text-gray-400">Active team members</div>
@@ -513,7 +507,7 @@ export default function DashboardClient({
         {/* Status Distribution */}
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
           <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-            <span>📊</span> Task Status Distribution
+            <span></span> Task Status Distribution
           </h3>
           <DonutChart data={statusDistribution} colors={statusColors} label="Tasks" />
         </div>
@@ -521,7 +515,7 @@ export default function DashboardClient({
         {/* Priority Distribution */}
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
           <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-            <span>🎯</span> Priority Breakdown
+            <span></span> Priority Breakdown
           </h3>
           <SimpleBarChart data={priorityDistribution} colors={priorityColors} />
         </div>
@@ -530,7 +524,7 @@ export default function DashboardClient({
       {/* Activity & Users Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
-          <h3 className="font-semibold text-white mb-4 flex items-center gap-2"><span>⚡</span> Real-time System Activity</h3>
+          <h3 className="font-semibold text-white mb-4 flex items-center gap-2"><span></span> Real-time System Activity</h3>
           <div className="space-y-2 max-h-80 overflow-auto">
             {activity.length === 0 && <div className="text-sm text-gray-500">No recent activity</div>}
             {activity.map((e) => (
@@ -549,7 +543,7 @@ export default function DashboardClient({
         </div>
 
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
-          <h3 className="font-semibold text-white mb-4 flex items-center gap-2"><span>🏢</span> Users Distribution</h3>
+          <h3 className="font-semibold text-white mb-4 flex items-center gap-2"><span></span> Users Distribution</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <div className="text-xs text-gray-400 mb-2">By Role</div>
@@ -566,7 +560,7 @@ export default function DashboardClient({
       {/* Overdue Tracker & Escalations */}
       <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center gap-2"><span>⏰</span> Overdue Tracker & Escalations</h3>
+          <h3 className="font-semibold text-white flex items-center gap-2"><span></span> Overdue Tracker & Escalations</h3>
           {overdue?.summary && (
             <div className="flex items-center gap-3 text-xs">
               <div className="px-2 py-1 rounded border border-red-500/30 bg-red-500/10 text-red-400">Total: {overdue.summary.totalOverdue}</div>
@@ -638,7 +632,7 @@ export default function DashboardClient({
         {/* Team Workload */}
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
           <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-            <span>👥</span> Team Workload
+            <span></span> Team Workload
           </h3>
           <div className="space-y-3">
             {teamWorkload.slice(0, 8).map((member) => (
@@ -674,7 +668,7 @@ export default function DashboardClient({
         {/* Upcoming Deadlines */}
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
           <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-            <span>📅</span> Upcoming Deadlines
+            <span></span> Upcoming Deadlines
           </h3>
           <div className="space-y-2">
             {upcomingDeadlines.map((task) => {
@@ -731,28 +725,28 @@ export default function DashboardClient({
             href="/admin/tasks"
             className="flex flex-col items-center gap-2 p-4 rounded-lg bg-neutral-800/50 hover:bg-neutral-800 border border-neutral-700 hover:border-neutral-600 transition-all group"
           >
-            <span className="text-2xl group-hover:scale-110 transition-transform">📋</span>
+
             <span className="text-sm text-gray-300 group-hover:text-white">View All Tasks</span>
           </Link>
           <Link
             href="/admin/projects"
             className="flex flex-col items-center gap-2 p-4 rounded-lg bg-neutral-800/50 hover:bg-neutral-800 border border-neutral-700 hover:border-neutral-600 transition-all group"
           >
-            <span className="text-2xl group-hover:scale-110 transition-transform">📁</span>
+
             <span className="text-sm text-gray-300 group-hover:text-white">View Projects</span>
           </Link>
           <Link
             href="/admin/users"
             className="flex flex-col items-center gap-2 p-4 rounded-lg bg-neutral-800/50 hover:bg-neutral-800 border border-neutral-700 hover:border-neutral-600 transition-all group"
           >
-            <span className="text-2xl group-hover:scale-110 transition-transform">👥</span>
+
             <span className="text-sm text-gray-300 group-hover:text-white">Team Members</span>
           </Link>
           <Link
             href="/admin/templates"
             className="flex flex-col items-center gap-2 p-4 rounded-lg bg-neutral-800/50 hover:bg-neutral-800 border border-neutral-700 hover:border-neutral-600 transition-all group"
           >
-            <span className="text-2xl group-hover:scale-110 transition-transform">📝</span>
+
             <span className="text-sm text-gray-300 group-hover:text-white">Templates</span>
           </Link>
         </div>

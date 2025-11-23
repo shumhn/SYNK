@@ -14,7 +14,10 @@ export async function GET() {
     await connectToDatabase();
 
     const [employees, teams, projects, tasks] = await Promise.all([
-      User.countDocuments({ isActive: true }),
+      User.countDocuments({ 
+        isActive: true,
+        roles: { $in: ["employee", "manager", "hr", "admin"] } // Exclude viewers and count only real employees
+      }),
       Team.countDocuments({}),
       Project.countDocuments({}),
       Task.countDocuments({}),

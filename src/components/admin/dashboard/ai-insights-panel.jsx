@@ -51,9 +51,9 @@ export default function AIInsightsPanel({ scope = "company", refId = null }) {
   }
 
   return (
-    <div className="bg-gradient-to-r from-indigo-900/20 to-purple-900/20 border border-indigo-500/30 rounded-2xl overflow-hidden relative">
+    <div className="bg-gradient-to-r from-slate-900/40 to-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden relative backdrop-blur-sm">
       {/* Decorative background glow */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
@@ -62,7 +62,7 @@ export default function AIInsightsPanel({ scope = "company", refId = null }) {
               <span className="text-2xl">✨</span>
               AI Insights & Optimization
             </h3>
-            <p className="text-sm text-indigo-200/70 mt-1">
+            <p className="text-sm text-slate-400 mt-1">
               Machine learning-based pattern recognition for task flow optimization
             </p>
           </div>
@@ -70,7 +70,7 @@ export default function AIInsightsPanel({ scope = "company", refId = null }) {
           <button
             onClick={runAnalysis}
             disabled={analyzing}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-indigo-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {analyzing ? (
               <>
@@ -92,7 +92,7 @@ export default function AIInsightsPanel({ scope = "company", refId = null }) {
         )}
 
         {!data && !analyzing && !error && (
-          <div className="text-center py-8 text-indigo-200/40 border-2 border-dashed border-indigo-500/20 rounded-xl">
+          <div className="text-center py-8 text-slate-400 border-2 border-dashed border-slate-700/50 rounded-xl bg-slate-900/20">
             <div className="text-4xl mb-2">🧠</div>
             <p>Click "Analyze Now" to detect anomalies and generate recommendations</p>
           </div>
@@ -102,7 +102,7 @@ export default function AIInsightsPanel({ scope = "company", refId = null }) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Anomalies Column */}
             <div className="space-y-4">
-              <h4 className="text-sm font-medium text-indigo-300 uppercase tracking-wider">
+              <h4 className="text-sm font-medium text-slate-300 uppercase tracking-wider">
                 Detected Anomalies ({data.anomalies.length})
               </h4>
               
@@ -143,24 +143,24 @@ export default function AIInsightsPanel({ scope = "company", refId = null }) {
 
             {/* Recommendations Column */}
             <div className="space-y-4">
-              <h4 className="text-sm font-medium text-indigo-300 uppercase tracking-wider">
+              <h4 className="text-sm font-medium text-slate-300 uppercase tracking-wider">
                 AI Recommendations
               </h4>
               <div className="space-y-3">
                 {data.recommendations.map((rec, i) => (
-                  <div key={i} className="flex gap-3 p-3 bg-indigo-950/30 border border-indigo-500/20 rounded-xl">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-300 text-xs font-bold">
+                  <div key={i} className="flex gap-3 p-3 bg-slate-800/50 border border-slate-700/50 rounded-xl">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-300 text-xs font-bold">
                       {i + 1}
                     </div>
-                    <p className="text-sm text-indigo-100 leading-relaxed">
+                    <p className="text-sm text-slate-200 leading-relaxed">
                       {rec}
                     </p>
                   </div>
                 ))}
               </div>
               
-              <div className="pt-4 mt-2 border-t border-indigo-500/20">
-                <div className="flex items-center justify-between text-xs text-indigo-300/60">
+              <div className="pt-4 mt-2 border-t border-slate-700/50">
+                <div className="flex items-center justify-between text-xs text-slate-400">
                   <span>Based on {data.stats.totalDays} days of data</span>
                   <span>Avg Output: {data.stats.mean}</span>
                 </div>
