@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/admin/automation/daily-run?token=8cf75ed9ce0181e0a4c667cce1ee05416904be0e3ab71dc782557c41113c54ee",
+      "path": "/api/admin/automation/daily-run",
       "schedule": "0 3 * * *"
     }
   ]

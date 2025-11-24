@@ -166,21 +166,25 @@ async function getAiSummary({ label, range, metrics, comparison, deltas }) {
 }
 
 export async function POST(req) {
-  const auth = await requireRoles(["admin"]);
-  if (!auth.ok) {
-    return NextResponse.json(
-      { error: true, message: auth.error },
-      { status: auth.status }
-    );
-  }
-
   const { searchParams } = new URL(req.url);
-  const token = searchParams.get("token");
-  if (!token || token !== process.env.CRON_SECRET) {
-    return NextResponse.json(
-      { error: true, message: "Unauthorized cron" },
-      { status: 401 }
-    );
+  const queryToken = searchParams.get("token");
+  const authHeader = req.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+
+  // 1. Check if this is a valid Cron request
+  const isValidCron =
+    cronSecret &&
+    ((authHeader === `Bearer ${cronSecret}`) || (queryToken === cronSecret));
+
+  // 2. If not a valid cron request, require Admin session
+  if (!isValidCron) {
+    const auth = await requireRoles(["admin"]);
+    if (!auth.ok) {
+      return NextResponse.json(
+        { error: true, message: auth.error || "Unauthorized" },
+        { status: auth.status || 401 }
+      );
+    }
   }
 
   const periodParam = searchParams.get("period"); // weekly | monthly | both/null
