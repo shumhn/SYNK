@@ -7,11 +7,7 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
-    "test:all": "node tests/run-all-tests.js"
+    "lint": "eslint"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
@@ -43,10 +39,8 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/jest": "^29.5.12",
     "eslint": "^9",
     "eslint-config-next": "15.5.5",
-    "jest": "^29.7.0",
     "tailwindcss": "^4"
   }
 }
