@@ -91,7 +91,7 @@ const authOptions = {
             image: picture,
             provider: "google",
             googleId,
-            roles: [], // No default roles on first Google sign-in; admin assigns later
+            roles: ['admin'], // 🚨 DEMO MODE: Everyone gets admin for recruiter showcase!
           });
         } else {
           let updated = false;
